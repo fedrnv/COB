@@ -1,0 +1,22 @@
+# CLion
+.idea/
+
+# Build
+cmake-build-*/
+build/
+Appli/build/
+FSBL/build/
+
+# STM32 binaries
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+
+# CubeIDE
+*.launch
+
+# OS
+Thumbs.db
+Desktop.ini
