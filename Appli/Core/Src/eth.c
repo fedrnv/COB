@@ -83,6 +83,12 @@ void MX_ETH1_Init(void)
   heth1.Init.RxBuffLen = 1536;
 
   /* USER CODE BEGIN MACADDRESS */
+  MACAddr[0] = 0x02;
+  MACAddr[1] = 0x00;
+  MACAddr[2] = 0x00;
+  MACAddr[3] = 0x00;
+  MACAddr[4] = 0x01;
+  MACAddr[5] = 0x88;
 
   /* USER CODE END MACADDRESS */
 
@@ -207,4 +213,3 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
-

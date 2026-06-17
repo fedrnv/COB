@@ -1,0 +1,305 @@
+#include "cob_ethernet_exchange.h"
+
+#include <string.h>
+
+typedef struct {
+  COB_StartMeasurePacket_t start_measure;
+  COB_CoefficientPacket_t coefficient;
+  COB_ControlPacket_t control;
+  COB_AddressPacket_t address;
+  COB_OperationPacket_t operation;
+  COB_InfoPacket_t info;
+  uint16_t tx_index;
+  COB_EthernetSendFn send_fn;
+  void *send_context;
+  bool start_measure_valid;
+  bool coefficient_valid;
+  bool control_valid;
+  bool address_valid;
+  bool operation_valid;
+} COB_EthernetExchangeState_t;
+
+static COB_EthernetExchangeState_t exchange;
+
+static uint16_t clamp_copy_len(uint16_t packet_len, uint16_t storage_len);
+static bool send_packet(void *packet, uint16_t length, uint16_t packet_id);
+static bool send_coefficient_echo(uint16_t status);
+static bool send_control_echo(uint16_t error_parameters);
+static bool send_address_echo(uint16_t status);
+static bool send_operation_echo(uint16_t status);
+static bool send_ram_packet(uint32_t operation_param);
+static void load_defaults(void);
+
+void COB_EthernetExchange_Init(COB_EthernetSendFn send_fn, void *send_context)
+{
+  memset(&exchange, 0, sizeof(exchange));
+  exchange.send_fn = send_fn;
+  exchange.send_context = send_context;
+  load_defaults();
+}
+
+bool COB_EthernetExchange_ProcessPacket(const uint8_t *payload, uint16_t length)
+{
+  COB_Header_t header;
+
+  if ((payload == NULL) || (length < sizeof(header))) {
+    return false;
+  }
+
+  memcpy(&header, payload, sizeof(header));
+
+  switch (header.Id) {
+  case COB_START_MEAS_RCV_ID:
+    memcpy(&exchange.start_measure, payload, clamp_copy_len(length, sizeof(exchange.start_measure)));
+    exchange.start_measure.Id = COB_START_MEAS_RCV_ID;
+    exchange.start_measure.Length = sizeof(exchange.start_measure);
+    exchange.start_measure_valid = true;
+    return true;
+
+  case COB_COEFF_RCV_ID:
+    memcpy(&exchange.coefficient, payload, clamp_copy_len(length, sizeof(exchange.coefficient)));
+    exchange.coefficient.Id = COB_COEFF_RCV_ID;
+    exchange.coefficient.Length = sizeof(exchange.coefficient);
+    exchange.coefficient_valid = true;
+    return send_coefficient_echo(1U);
+
+  case COB_CONTROL_RCV_ID:
+    memcpy(&exchange.control, payload, clamp_copy_len(length, sizeof(exchange.control)));
+    exchange.control.Id = COB_CONTROL_RCV_ID;
+    exchange.control.Length = sizeof(exchange.control);
+    exchange.control_valid = true;
+    return send_control_echo(0U);
+
+  case COB_ADDRESS_RCV_ID:
+    memcpy(&exchange.address, payload, clamp_copy_len(length, sizeof(exchange.address)));
+    exchange.address.Id = COB_ADDRESS_RCV_ID;
+    exchange.address.Length = sizeof(exchange.address);
+    exchange.address_valid = true;
+    return send_address_echo(1U);
+
+  case COB_OPERATION_RCV_ID:
+    memcpy(&exchange.operation, payload, clamp_copy_len(length, sizeof(exchange.operation)));
+    exchange.operation.Id = COB_OPERATION_RCV_ID;
+    exchange.operation.Length = sizeof(exchange.operation);
+    exchange.operation_valid = true;
+
+    if ((exchange.operation.OperationType == COB_OPERATION_READ_RAM) ||
+        (exchange.operation.OperationType == COB_OPERATION_READ_FLASH)) {
+      bool sent_data = send_ram_packet(exchange.operation.OperationParam);
+      (void)send_operation_echo(sent_data ? COB_OPERATION_DATA_OK : COB_OPERATION_NOT_OK);
+      return sent_data;
+    }
+
+    return send_operation_echo(COB_OPERATION_DATA_OK);
+
+  case COB_NOT_RCV_ID:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+bool COB_EthernetExchange_SendInfo(void)
+{
+  exchange.info.Id = COB_INFO_SEND_ID;
+  exchange.info.Length = sizeof(exchange.info);
+  return send_packet(&exchange.info, sizeof(exchange.info), COB_INFO_SEND_ID);
+}
+
+const COB_CoefficientPacket_t *COB_EthernetExchange_GetCoefficientPacket(void)
+{
+  return &exchange.coefficient;
+}
+
+const COB_ControlPacket_t *COB_EthernetExchange_GetControlPacket(void)
+{
+  return &exchange.control;
+}
+
+const COB_AddressPacket_t *COB_EthernetExchange_GetAddressPacket(void)
+{
+  return &exchange.address;
+}
+
+const COB_InfoPacket_t *COB_EthernetExchange_GetInfoPacket(void)
+{
+  return &exchange.info;
+}
+
+static uint16_t clamp_copy_len(uint16_t packet_len, uint16_t storage_len)
+{
+  return (packet_len < storage_len) ? packet_len : storage_len;
+}
+
+static bool send_packet(void *packet, uint16_t length, uint16_t packet_id)
+{
+  COB_Header_t *header = (COB_Header_t *)packet;
+
+  header->Id = packet_id;
+  header->Index = exchange.tx_index;
+  header->Length = length;
+
+  if (exchange.send_fn == NULL) {
+    exchange.tx_index++;
+    return false;
+  }
+
+  bool sent = exchange.send_fn((const uint8_t *)packet, length, exchange.send_context);
+  if (sent) {
+    exchange.tx_index++;
+  }
+
+  return sent;
+}
+
+static bool send_coefficient_echo(uint16_t status)
+{
+  COB_CoefficientEchoPacket_t echo = {
+    .Id = COB_COEFF_ECHO_ID,
+    .Length = sizeof(echo),
+    .CoefficientStatus = status,
+  };
+
+  return send_packet(&echo, sizeof(echo), COB_COEFF_ECHO_ID);
+}
+
+static bool send_control_echo(uint16_t error_parameters)
+{
+  COB_ControlEchoPacket_t echo = {
+    .Id = COB_CONTROL_ECHO_ID,
+    .Length = sizeof(echo),
+    .ErrorParameters = error_parameters,
+  };
+
+  return send_packet(&echo, sizeof(echo), COB_CONTROL_ECHO_ID);
+}
+
+static bool send_address_echo(uint16_t status)
+{
+  COB_AddressEchoPacket_t echo = {
+    .Id = COB_ADDRESS_ECHO_ID,
+    .Length = sizeof(echo),
+    .AddressStatus = status,
+  };
+
+  return send_packet(&echo, sizeof(echo), COB_ADDRESS_ECHO_ID);
+}
+
+static bool send_operation_echo(uint16_t status)
+{
+  COB_OperationEchoPacket_t echo = {
+    .Id = COB_OPERATION_ECHO_ID,
+    .Length = sizeof(echo),
+    .OperationStatus = status,
+    .Reserve = 0x4F4B0000UL | status,
+  };
+
+  return send_packet(&echo, sizeof(echo), COB_OPERATION_ECHO_ID);
+}
+
+static bool send_ram_packet(uint32_t operation_param)
+{
+  bool sent = false;
+
+  if ((operation_param == COB_OPERATION_PACK_ALL) || (operation_param == COB_OPERATION_PACK_COEFF)) {
+    if (exchange.coefficient_valid) {
+      COB_CoefficientPacket_t packet = exchange.coefficient;
+      sent |= send_packet(&packet, sizeof(packet), COB_COEFF_BACK_ID);
+    }
+  }
+
+  if ((operation_param == COB_OPERATION_PACK_ALL) || (operation_param == COB_OPERATION_PACK_CONTROL)) {
+    if (exchange.control_valid) {
+      COB_ControlPacket_t packet = exchange.control;
+      sent |= send_packet(&packet, sizeof(packet), COB_CONTROL_BACK_ID);
+    }
+  }
+
+  if ((operation_param == COB_OPERATION_PACK_ALL) || (operation_param == COB_OPERATION_PACK_ADDR)) {
+    if (exchange.address_valid) {
+      COB_AddressPacket_t packet = exchange.address;
+      sent |= send_packet(&packet, sizeof(packet), COB_ADDRESS_BACK_ID);
+    }
+  }
+
+  return sent;
+}
+
+static void load_defaults(void)
+{
+  exchange.coefficient = (COB_CoefficientPacket_t) {
+    .Id = COB_COEFF_RCV_ID,
+    .Length = sizeof(exchange.coefficient),
+    .Reserve = 0xA55AU,
+    .CoefGSMM = 1.0f,
+    .CoefGSMA = 2.0f,
+    .CoefTempM = 100U,
+    .CoefTempA = 25U,
+  };
+  exchange.coefficient_valid = true;
+
+  exchange.control = (COB_ControlPacket_t) {
+    .Id = COB_CONTROL_RCV_ID,
+    .Length = sizeof(exchange.control),
+    .MeasPeriod = 100U,
+    .DeviceMode = 1U,
+    .Options = 0x0002U,
+    .GeneratorParameters = {
+      .NumberTP = 4U,
+      .GenOptions = 0x02U,
+      .TPPeriod = 1000U,
+      .GuardIntreval = 250U,
+      .DelayGen = 10U,
+    },
+    .AmplifierParameteters = {
+      .Gain = 32U,
+      .AutoGainControl = 1U,
+    },
+    .SignalProcessingParameters = {
+      .StartIndex = 10U,
+      .EndIndex = 400U,
+      .FiltersActivity = 0x001FU,
+      .LPFWindow = 8U,
+      .RepDepth = 4U,
+      .FIRspPointsN = 16U,
+      .EmaAlpha = 64U,
+      .ATAvWindow = 10U,
+    },
+  };
+  exchange.control_valid = true;
+
+  exchange.address = (COB_AddressPacket_t) {
+    .Id = COB_ADDRESS_RCV_ID,
+    .Length = sizeof(exchange.address),
+    .MACAddress = {0x02U, 0x43U, 0x4FU, 0x42U, 0x00U, 0x01U},
+    .IPAddress = {192U, 168U, 1U, 50U},
+    .IPAddressDst = {192U, 168U, 1U, 10U},
+    .SendPort = 1556U,
+    .IPAddressDst2 = {192U, 168U, 1U, 11U},
+    .SendPort2 = 1556U,
+    .Reserve = 0x1234U,
+    .MCID = 0x4E365F45UL,
+  };
+  exchange.address_valid = true;
+
+  exchange.info = (COB_InfoPacket_t) {
+    .Id = COB_INFO_SEND_ID,
+    .Length = sizeof(exchange.info),
+    .FirmwareVers = 0x0101U,
+    .BAW_STM32_ID = 0x3653504EUL,
+    .EEPROMID = 0x24AA02U,
+    .MCID = 0x4E365F45UL,
+    .DeviceStatus = 1U,
+    .FirmwareUpdateCnt = 1U,
+    .TempuC = 3200,
+    .TempExtSensor = 2500,
+    .Vin1 = 3300U,
+    .cpu_load = 5U,
+    .Mode = 1U,
+    .Vin2 = 5000U,
+    .TempIRSensor = 2600U,
+    .Gain = 32U,
+    .BoardConnStatus = 1U,
+  };
+}

@@ -24,6 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "cob_ethernet_exchange.h"
 
 /* USER CODE END Includes */
 
@@ -86,6 +87,7 @@ int main(void)
   MX_ETH1_Init();
   SystemIsolation_Config();
   /* USER CODE BEGIN 2 */
+  COB_EthernetExchange_Init(NULL, NULL);
 
   /* USER CODE END 2 */
 

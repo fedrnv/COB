@@ -17,6 +17,10 @@ FSBL/build/
 # CubeIDE
 *.launch
 
+# Local references
+Reference_BAW_IB/
+Refecrence_BAW_IB/
+
 # OS
 Thumbs.db
 Desktop.ini
