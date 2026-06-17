@@ -43,6 +43,7 @@ void COB_StatusLED_Init(void);
 void COB_StatusLED_EthernetStarting(void);
 void COB_StatusLED_EthernetReady(void);
 void COB_StatusLED_EthernetError(void);
+void COB_StatusLED_BlueToggle(void);
 
 /* USER CODE END Prototypes */
 

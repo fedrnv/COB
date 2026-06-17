@@ -204,6 +204,7 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     if (nx_ip_status_check(&cob_ip, NX_IP_LINK_ENABLED, &actual_status, TX_NO_WAIT) == NX_SUCCESS)
     {
       COB_NX_LinkStatus = actual_status;
+      COB_StatusLED_BlueToggle();
       ticks_since_gratuitous_arp += (TX_TIMER_TICKS_PER_SECOND / 2U);
       if (ticks_since_gratuitous_arp >= COB_NETX_GRATUITOUS_ARP_PERIOD)
       {

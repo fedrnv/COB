@@ -93,6 +93,11 @@ void COB_StatusLED_EthernetError(void)
   COB_StatusLED_Write(COB_LED_OFF, COB_LED_ON, COB_LED_OFF);
 }
 
+void COB_StatusLED_BlueToggle(void)
+{
+  HAL_GPIO_TogglePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN);
+}
+
 static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinState green)
 {
   HAL_GPIO_WritePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN, blue);
