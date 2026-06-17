@@ -73,6 +73,7 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
+  HAL_SuspendTick();
 
   /* USER CODE BEGIN Init */
 
