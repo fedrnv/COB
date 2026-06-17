@@ -42,7 +42,7 @@ extern "C" {
 /*#define HAL_DCMIPP_MODULE_ENABLED   */
 /*#define HAL_DMA2D_MODULE_ENABLED   */
 /*#define HAL_DTS_MODULE_ENABLED   */
-/*#define HAL_ETH_MODULE_ENABLED   */
+#define HAL_ETH_MODULE_ENABLED
 /*#define HAL_EXTI_MODULE_ENABLED   */
 /*#define HAL_FDCAN_MODULE_ENABLED   */
 /*#define HAL_GFXMMU_MODULE_ENABLED   */
@@ -153,7 +153,7 @@ extern "C" {
   * @brief This is the HAL system configuration section
   */
 #define  VDD_VALUE                  3300UL /*!< Value of VDD in mv */
-#define  TICK_INT_PRIORITY          15U  /*!< tick interrupt priority (lowest by default) */
+#define  TICK_INT_PRIORITY          14U  /*!< tick interrupt priority */
 #define  USE_RTOS                   0U
 
 /* ########################## Assert Selection ############################## */

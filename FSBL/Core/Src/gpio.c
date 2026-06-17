@@ -79,10 +79,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  BSP_LED_Init(LED_BLUE);
-  BSP_LED_Init(LED_RED);
-  BSP_LED_Init(LED_GREEN);
-
 }
 
 /* USER CODE BEGIN 2 */

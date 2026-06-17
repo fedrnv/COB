@@ -109,19 +109,16 @@ int main(void)
     Error_Handler();
   }
 
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
 
-    BSP_LED_Toggle(LED_BLUE);
-    HAL_Delay(300);
+    /* USER CODE END WHILE */
 
-    BSP_LED_Toggle(LED_RED);
-    HAL_Delay(300);
-
-    BSP_LED_Toggle(LED_GREEN);
-    HAL_Delay(300);
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
