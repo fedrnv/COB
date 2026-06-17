@@ -43,6 +43,7 @@
 #define COB_NETX_IP_STACK_SIZE     2048U
 #define COB_NETX_STATUS_STACK_SIZE 1024U
 #define COB_NETX_LINK_TIMEOUT      (6U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_NETX_GRATUITOUS_ARP_PERIOD (1U * TX_TIMER_TICKS_PER_SECOND)
 
 /* USER CODE END PD */
 
@@ -185,6 +186,7 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
 {
   ULONG actual_status;
   ULONG unused;
+  ULONG ticks_since_gratuitous_arp = 0U;
 
   (void)initial_input;
 
@@ -202,10 +204,17 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     if (nx_ip_status_check(&cob_ip, NX_IP_LINK_ENABLED, &actual_status, TX_NO_WAIT) == NX_SUCCESS)
     {
       COB_NX_LinkStatus = actual_status;
+      ticks_since_gratuitous_arp += (TX_TIMER_TICKS_PER_SECOND / 2U);
+      if (ticks_since_gratuitous_arp >= COB_NETX_GRATUITOUS_ARP_PERIOD)
+      {
+        (void)nx_arp_gratuitous_send(&cob_ip, NX_NULL);
+        ticks_since_gratuitous_arp = 0U;
+      }
     }
     else
     {
       COB_NX_LinkStatus = 0U;
+      ticks_since_gratuitous_arp = 0U;
     }
 
     (void)nx_ip_address_get(&cob_ip, (ULONG *)&COB_NX_IpAddress, (ULONG *)&COB_NX_NetworkMask);
