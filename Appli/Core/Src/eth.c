@@ -46,6 +46,9 @@ ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT * 2U];
 ETH_TxPacketConfig TxConfig;
 
 /* USER CODE BEGIN 0 */
+volatile uint32_t COB_ETH_DebugStage = 0U;
+volatile uint32_t COB_ETH_LastErrorCode = 0U;
+volatile uint32_t COB_ETH_LastDMAMR = 0U;
 
 /* USER CODE END 0 */
 
@@ -56,6 +59,7 @@ void MX_ETH1_Init(void)
 {
 
   /* USER CODE BEGIN ETH1_Init 0 */
+  COB_ETH_DebugStage = 1U;
 
   /* USER CODE END ETH1_Init 0 */
 
@@ -95,12 +99,19 @@ void MX_ETH1_Init(void)
 
   /* USER CODE END MACADDRESS */
 
+  COB_ETH_DebugStage = 90U;
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
+    COB_ETH_DebugStage = 900U;
+    COB_ETH_LastErrorCode = heth1.ErrorCode;
+    COB_ETH_LastDMAMR = heth1.Instance->DMAMR;
     COB_StatusLED_EthernetError();
     Error_Handler();
   }
   /* USER CODE BEGIN ETH1_Init 2 */
+  COB_ETH_DebugStage = 100U;
+  COB_ETH_LastErrorCode = heth1.ErrorCode;
+  COB_ETH_LastDMAMR = heth1.Instance->DMAMR;
 
   /* USER CODE END ETH1_Init 2 */
 
@@ -114,6 +125,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
   if(ethHandle->Instance==ETH1)
   {
   /* USER CODE BEGIN ETH1_MspInit 0 */
+    COB_ETH_DebugStage = 10U;
 
   /* USER CODE END ETH1_MspInit 0 */
 
@@ -128,10 +140,12 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
+      COB_ETH_DebugStage = 910U;
       Error_Handler();
     }
 
     /* ETH1 clock enable */
+    COB_ETH_DebugStage = 20U;
     __HAL_RCC_ETH1_CLK_ENABLE();
     __HAL_RCC_ETH1MAC_CLK_ENABLE();
     __HAL_RCC_ETH1TX_CLK_ENABLE();
@@ -154,7 +168,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
@@ -162,14 +176,16 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
                           |GPIO_PIN_14|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 30U;
 
     /* ETH1 interrupt Init */
     HAL_NVIC_SetPriority(ETH1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(ETH1_IRQn);
   /* USER CODE BEGIN ETH1_MspInit 1 */
+    COB_ETH_DebugStage = 40U;
 
   /* USER CODE END ETH1_MspInit 1 */
   }

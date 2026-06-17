@@ -86,8 +86,8 @@ int main(void)
   MX_GPIO_Init();
   COB_StatusLED_Init();
   COB_StatusLED_EthernetStarting();
-  MX_ETH1_Init();
   SystemIsolation_Config();
+  MX_ETH1_Init();
   /* USER CODE BEGIN 2 */
   COB_EthernetExchange_Init(NULL, NULL);
 

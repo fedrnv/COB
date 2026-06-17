@@ -38,6 +38,12 @@ extern ETH_HandleTypeDef heth1;
 
 /* USER CODE END Private defines */
 
+/* USER CODE BEGIN EV */
+extern volatile uint32_t COB_ETH_DebugStage;
+extern volatile uint32_t COB_ETH_LastErrorCode;
+extern volatile uint32_t COB_ETH_LastDMAMR;
+/* USER CODE END EV */
+
 void MX_ETH1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
@@ -49,4 +55,3 @@ void MX_ETH1_Init(void);
 #endif
 
 #endif /* __ETH_H__ */
-
