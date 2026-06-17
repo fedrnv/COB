@@ -60,6 +60,27 @@ static UCHAR *cob_arp_cache_memory;
 static UCHAR *cob_ip_stack_memory;
 static UCHAR *cob_status_stack_memory;
 static TX_THREAD cob_status_thread;
+volatile ULONG COB_NX_LinkStatus = 0U;
+volatile ULONG COB_NX_IpAddress = 0U;
+volatile ULONG COB_NX_NetworkMask = 0U;
+volatile ULONG COB_NX_IpPacketsSent = 0U;
+volatile ULONG COB_NX_IpPacketsReceived = 0U;
+volatile ULONG COB_NX_IpBytesSent = 0U;
+volatile ULONG COB_NX_IpBytesReceived = 0U;
+volatile ULONG COB_NX_IpInvalidPackets = 0U;
+volatile ULONG COB_NX_IpReceiveDropped = 0U;
+volatile ULONG COB_NX_IpSendDropped = 0U;
+volatile ULONG COB_NX_ArpRequestsSent = 0U;
+volatile ULONG COB_NX_ArpRequestsReceived = 0U;
+volatile ULONG COB_NX_ArpResponsesSent = 0U;
+volatile ULONG COB_NX_ArpResponsesReceived = 0U;
+volatile ULONG COB_NX_ArpDynamicEntries = 0U;
+volatile ULONG COB_NX_ArpInvalidMessages = 0U;
+volatile ULONG COB_NX_IcmpPingsSent = 0U;
+volatile ULONG COB_NX_IcmpPingTimeouts = 0U;
+volatile ULONG COB_NX_IcmpPingResponsesReceived = 0U;
+volatile ULONG COB_NX_IcmpChecksumErrors = 0U;
+volatile ULONG COB_NX_IcmpUnhandledMessages = 0U;
 
 /* USER CODE END PV */
 
@@ -163,6 +184,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
 static VOID COB_NetXStatusThread(ULONG initial_input)
 {
   ULONG actual_status;
+  ULONG unused;
 
   (void)initial_input;
 
@@ -175,7 +197,51 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     COB_StatusLED_EthernetError();
   }
 
-  tx_thread_sleep(TX_WAIT_FOREVER);
+  while (1)
+  {
+    if (nx_ip_status_check(&cob_ip, NX_IP_LINK_ENABLED, &actual_status, TX_NO_WAIT) == NX_SUCCESS)
+    {
+      COB_NX_LinkStatus = actual_status;
+    }
+    else
+    {
+      COB_NX_LinkStatus = 0U;
+    }
+
+    (void)nx_ip_address_get(&cob_ip, (ULONG *)&COB_NX_IpAddress, (ULONG *)&COB_NX_NetworkMask);
+
+    (void)nx_ip_info_get(&cob_ip,
+                         (ULONG *)&COB_NX_IpPacketsSent,
+                         (ULONG *)&COB_NX_IpBytesSent,
+                         (ULONG *)&COB_NX_IpPacketsReceived,
+                         (ULONG *)&COB_NX_IpBytesReceived,
+                         (ULONG *)&COB_NX_IpInvalidPackets,
+                         (ULONG *)&COB_NX_IpReceiveDropped,
+                         &unused,
+                         (ULONG *)&COB_NX_IpSendDropped,
+                         &unused,
+                         &unused);
+
+    (void)nx_arp_info_get(&cob_ip,
+                          (ULONG *)&COB_NX_ArpRequestsSent,
+                          (ULONG *)&COB_NX_ArpRequestsReceived,
+                          (ULONG *)&COB_NX_ArpResponsesSent,
+                          (ULONG *)&COB_NX_ArpResponsesReceived,
+                          (ULONG *)&COB_NX_ArpDynamicEntries,
+                          &unused,
+                          &unused,
+                          (ULONG *)&COB_NX_ArpInvalidMessages);
+
+    (void)nx_icmp_info_get(&cob_ip,
+                           (ULONG *)&COB_NX_IcmpPingsSent,
+                           (ULONG *)&COB_NX_IcmpPingTimeouts,
+                           &unused,
+                           (ULONG *)&COB_NX_IcmpPingResponsesReceived,
+                           (ULONG *)&COB_NX_IcmpChecksumErrors,
+                           (ULONG *)&COB_NX_IcmpUnhandledMessages);
+
+    tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2U);
+  }
 }
 
 /* USER CODE END 1 */

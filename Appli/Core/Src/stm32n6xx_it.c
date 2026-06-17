@@ -41,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+volatile uint32_t COB_ETH_IrqCount = 0U;
 
 /* USER CODE END PV */
 
@@ -179,6 +180,7 @@ void DebugMon_Handler(void)
 void ETH1_IRQHandler(void)
 {
   /* USER CODE BEGIN ETH1_IRQn 0 */
+  COB_ETH_IrqCount++;
 
   /* USER CODE END ETH1_IRQn 0 */
   HAL_ETH_IRQHandler(&heth1);
