@@ -39,6 +39,10 @@ extern "C" {
 void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void COB_StatusLED_Init(void);
+void COB_StatusLED_EthernetStarting(void);
+void COB_StatusLED_EthernetReady(void);
+void COB_StatusLED_EthernetError(void);
 
 /* USER CODE END Prototypes */
 
@@ -46,4 +50,3 @@ void MX_GPIO_Init(void);
 }
 #endif
 #endif /*__ GPIO_H__ */
-

@@ -22,6 +22,16 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
+#define COB_LED_BLUE_PORT       GPIOG
+#define COB_LED_BLUE_PIN        GPIO_PIN_8
+#define COB_LED_RED_PORT        GPIOG
+#define COB_LED_RED_PIN         GPIO_PIN_10
+#define COB_LED_GREEN_PORT      GPIOG
+#define COB_LED_GREEN_PIN       GPIO_PIN_0
+#define COB_LED_ON              GPIO_PIN_RESET
+#define COB_LED_OFF             GPIO_PIN_SET
+
+static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinState green);
 
 /* USER CODE END 0 */
 
@@ -43,9 +53,46 @@ void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
 
 }
 
 /* USER CODE BEGIN 2 */
+void COB_StatusLED_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  __HAL_RCC_GPIOG_CLK_ENABLE();
+
+  GPIO_InitStruct.Pin = COB_LED_BLUE_PIN | COB_LED_RED_PIN | COB_LED_GREEN_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  COB_StatusLED_Write(COB_LED_OFF, COB_LED_OFF, COB_LED_OFF);
+}
+
+void COB_StatusLED_EthernetStarting(void)
+{
+  COB_StatusLED_Write(COB_LED_OFF, COB_LED_ON, COB_LED_ON);
+}
+
+void COB_StatusLED_EthernetReady(void)
+{
+  COB_StatusLED_Write(COB_LED_ON, COB_LED_OFF, COB_LED_OFF);
+}
+
+void COB_StatusLED_EthernetError(void)
+{
+  COB_StatusLED_Write(COB_LED_OFF, COB_LED_ON, COB_LED_OFF);
+}
+
+static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinState green)
+{
+  HAL_GPIO_WritePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN, blue);
+  HAL_GPIO_WritePin(COB_LED_RED_PORT, COB_LED_RED_PIN, red);
+  HAL_GPIO_WritePin(COB_LED_GREEN_PORT, COB_LED_GREEN_PIN, green);
+}
 
 /* USER CODE END 2 */

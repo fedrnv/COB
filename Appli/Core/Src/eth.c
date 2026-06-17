@@ -20,6 +20,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "eth.h"
 #include "string.h"
+/* USER CODE BEGIN Includes */
+#include "gpio.h"
+/* USER CODE END Includes */
 
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
 
@@ -94,6 +97,7 @@ void MX_ETH1_Init(void)
 
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
+    COB_StatusLED_EthernetError();
     Error_Handler();
   }
   /* USER CODE BEGIN ETH1_Init 2 */
