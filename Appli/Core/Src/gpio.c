@@ -30,12 +30,8 @@
 #define COB_LED_GREEN_PIN       GPIO_PIN_0
 #define COB_LED_ON              GPIO_PIN_RESET
 #define COB_LED_OFF             GPIO_PIN_SET
-#define COB_PWR_EN_PORT         GPIOD
-#define COB_PWR_EN_PIN          GPIO_PIN_10
-#define COB_PWR_STARTUP_LOOPS   2000000U
 
 static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinState green);
-static void COB_BusyWait(uint32_t loops);
 
 /* USER CODE END 0 */
 
@@ -67,22 +63,6 @@ void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 2 */
-void COB_BoardPower_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-
-  GPIO_InitStruct.Pin = COB_PWR_EN_PIN;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(COB_PWR_EN_PORT, &GPIO_InitStruct);
-
-  HAL_GPIO_WritePin(COB_PWR_EN_PORT, COB_PWR_EN_PIN, GPIO_PIN_SET);
-  COB_BusyWait(COB_PWR_STARTUP_LOOPS);
-}
-
 void COB_StatusLED_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -123,15 +103,6 @@ static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinS
   HAL_GPIO_WritePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN, blue);
   HAL_GPIO_WritePin(COB_LED_RED_PORT, COB_LED_RED_PIN, red);
   HAL_GPIO_WritePin(COB_LED_GREEN_PORT, COB_LED_GREEN_PIN, green);
-}
-
-static void COB_BusyWait(uint32_t loops)
-{
-  while (loops > 0U)
-  {
-    __NOP();
-    loops--;
-  }
 }
 
 /* USER CODE END 2 */
