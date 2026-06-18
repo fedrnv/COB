@@ -86,6 +86,14 @@ volatile uint32_t COB_ETH_PHY_PHYSCSR = 0U;
 volatile uint32_t COB_ETH_DMARxDscrTabAddr = 0U;
 volatile uint32_t COB_ETH_DMATxDscrTabAddr = 0U;
 volatile uint32_t COB_ETH_TxbufferAddr = 0U;
+volatile uint32_t COB_ETH_TxDesc0_DESC0 = 0U;
+volatile uint32_t COB_ETH_TxDesc0_DESC1 = 0U;
+volatile uint32_t COB_ETH_TxDesc0_DESC2 = 0U;
+volatile uint32_t COB_ETH_TxDesc0_DESC3 = 0U;
+volatile uint32_t COB_ETH_RxDesc0_DESC0 = 0U;
+volatile uint32_t COB_ETH_RxDesc0_DESC1 = 0U;
+volatile uint32_t COB_ETH_RxDesc0_DESC2 = 0U;
+volatile uint32_t COB_ETH_RxDesc0_DESC3 = 0U;
 
 /* USER CODE END 0 */
 
@@ -307,6 +315,14 @@ void COB_ETH_UpdateDebugSnapshot(void)
   COB_ETH_DMARxDscrTabAddr = (uint32_t)DMARxDscrTab;
   COB_ETH_DMATxDscrTabAddr = (uint32_t)DMATxDscrTab;
   COB_ETH_TxbufferAddr = (uint32_t)Txbuffer;
+  COB_ETH_TxDesc0_DESC0 = DMATxDscrTab[0][0].DESC0;
+  COB_ETH_TxDesc0_DESC1 = DMATxDscrTab[0][0].DESC1;
+  COB_ETH_TxDesc0_DESC2 = DMATxDscrTab[0][0].DESC2;
+  COB_ETH_TxDesc0_DESC3 = DMATxDscrTab[0][0].DESC3;
+  COB_ETH_RxDesc0_DESC0 = DMARxDscrTab[0][0].DESC0;
+  COB_ETH_RxDesc0_DESC1 = DMARxDscrTab[0][0].DESC1;
+  COB_ETH_RxDesc0_DESC2 = DMARxDscrTab[0][0].DESC2;
+  COB_ETH_RxDesc0_DESC3 = DMARxDscrTab[0][0].DESC3;
 
   if (COB_ETH_PhyAddr > COB_ETH_PHY_MAX_ADDR)
   {

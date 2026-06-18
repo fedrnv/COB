@@ -76,6 +76,14 @@ extern volatile uint32_t COB_ETH_PHY_PHYSCSR;
 extern volatile uint32_t COB_ETH_DMARxDscrTabAddr;
 extern volatile uint32_t COB_ETH_DMATxDscrTabAddr;
 extern volatile uint32_t COB_ETH_TxbufferAddr;
+extern volatile uint32_t COB_ETH_TxDesc0_DESC0;
+extern volatile uint32_t COB_ETH_TxDesc0_DESC1;
+extern volatile uint32_t COB_ETH_TxDesc0_DESC2;
+extern volatile uint32_t COB_ETH_TxDesc0_DESC3;
+extern volatile uint32_t COB_ETH_RxDesc0_DESC0;
+extern volatile uint32_t COB_ETH_RxDesc0_DESC1;
+extern volatile uint32_t COB_ETH_RxDesc0_DESC2;
+extern volatile uint32_t COB_ETH_RxDesc0_DESC3;
 /* USER CODE END EV */
 
 void MX_ETH1_Init(void);

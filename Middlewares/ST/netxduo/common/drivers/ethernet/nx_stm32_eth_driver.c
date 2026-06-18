@@ -42,6 +42,15 @@ static ULONG header_size;
 ETH_TxPacketConfigTypeDef  TxPacketCfg;
 ETH_MACFilterConfigTypeDef FilterConfig;
 USHORT                     packet_type;
+volatile ULONG COB_NX_DriverTxAttempts = 0U;
+volatile ULONG COB_NX_DriverTxSuccess = 0U;
+volatile ULONG COB_NX_DriverTxErrors = 0U;
+volatile ULONG COB_NX_DriverLastTxStatus = 0U;
+volatile ULONG COB_NX_DriverLastTxLength = 0U;
+volatile ULONG COB_NX_DriverLastTxBufferAddr = 0U;
+volatile ULONG COB_NX_DriverLastPacketAddr = 0U;
+volatile ULONG COB_NX_DriverLastHalErrorCode = 0U;
+volatile ULONG COB_NX_DriverLastHalDMAErrorCode = 0U;
 
 #ifdef NX_DRIVER_ENABLE_PTP
 TIMESTAMP_CALLBACK timestamp_callback = NULL;
@@ -2066,11 +2075,21 @@ static UINT  _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
   TxPacketCfg.TxBuffer = Txbuffer;
   TxPacketCfg.pData = (uint32_t *)packet_ptr;
 
-  if(HAL_ETH_Transmit_IT(&eth_handle, &TxPacketCfg))
+  COB_NX_DriverTxAttempts++;
+  COB_NX_DriverLastTxLength = buffLen;
+  COB_NX_DriverLastTxBufferAddr = (ULONG)Txbuffer[0].buffer;
+  COB_NX_DriverLastPacketAddr = (ULONG)packet_ptr;
+  COB_NX_DriverLastTxStatus = (ULONG)HAL_ETH_Transmit_IT(&eth_handle, &TxPacketCfg);
+  COB_NX_DriverLastHalErrorCode = eth_handle.ErrorCode;
+  COB_NX_DriverLastHalDMAErrorCode = eth_handle.DMAErrorCode;
+
+  if(COB_NX_DriverLastTxStatus != HAL_OK)
   {
+    COB_NX_DriverTxErrors++;
     return(NX_DRIVER_ERROR);
   }
 
+  COB_NX_DriverTxSuccess++;
   return(NX_SUCCESS);
 }
 #endif /* MULTI_QUEUE_FEATURE */
