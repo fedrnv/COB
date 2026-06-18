@@ -91,6 +91,10 @@ volatile uint32_t COB_ETH_MMCRCRCEPR = 0U;
 volatile uint32_t COB_ETH_MMCRAEPR = 0U;
 volatile uint32_t COB_ETH_PhyAddr = 0xFFFFFFFFU;
 volatile uint32_t COB_ETH_PhyReadStatus = 0U;
+volatile uint32_t COB_ETH_PhyIdValid = 0U;
+volatile uint32_t COB_ETH_PhyScanLastAddr = 0U;
+volatile uint32_t COB_ETH_PhyScanFoundID1 = 0U;
+volatile uint32_t COB_ETH_PhyScanFoundID2 = 0U;
 volatile uint32_t COB_ETH_PHY_SMR = 0U;
 volatile uint32_t COB_ETH_PHY_ID1 = 0U;
 volatile uint32_t COB_ETH_PHY_ID2 = 0U;
@@ -108,6 +112,16 @@ volatile uint32_t COB_ETH_RxDesc0_DESC0 = 0U;
 volatile uint32_t COB_ETH_RxDesc0_DESC1 = 0U;
 volatile uint32_t COB_ETH_RxDesc0_DESC2 = 0U;
 volatile uint32_t COB_ETH_RxDesc0_DESC3 = 0U;
+
+static uint32_t COB_ETH_IsValidPhyId(uint32_t id1, uint32_t id2)
+{
+  if (((id1 == 0U) && (id2 == 0U)) || ((id1 == 0xFFFFU) && (id2 == 0xFFFFU)))
+  {
+    return 0U;
+  }
+
+  return 1U;
+}
 
 /* USER CODE END 0 */
 
@@ -356,13 +370,19 @@ void COB_ETH_UpdateDebugSnapshot(void)
   {
     for (uint32_t addr = 0U; addr <= COB_ETH_PHY_MAX_ADDR; addr++)
     {
-      if (HAL_ETH_ReadPHYRegister(&heth1, addr, LAN8742_SMR, &phy_value) == HAL_OK)
+      uint32_t phy_id1 = 0U;
+      uint32_t phy_id2 = 0U;
+
+      COB_ETH_PhyScanLastAddr = addr;
+
+      if ((HAL_ETH_ReadPHYRegister(&heth1, addr, LAN8742_PHYI1R, &phy_id1) == HAL_OK) &&
+          (HAL_ETH_ReadPHYRegister(&heth1, addr, LAN8742_PHYI2R, &phy_id2) == HAL_OK) &&
+          (COB_ETH_IsValidPhyId(phy_id1, phy_id2) != 0U))
       {
-        if ((phy_value & LAN8742_SMR_PHY_ADDR) == addr)
-        {
-          COB_ETH_PhyAddr = addr;
-          break;
-        }
+        COB_ETH_PhyAddr = addr;
+        COB_ETH_PhyScanFoundID1 = phy_id1;
+        COB_ETH_PhyScanFoundID2 = phy_id2;
+        break;
       }
     }
   }
@@ -401,10 +421,12 @@ void COB_ETH_UpdateDebugSnapshot(void)
     if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_PHYI2R, &phy_value) == HAL_OK)
     {
       COB_ETH_PHY_ID2 = phy_value;
+      COB_ETH_PhyIdValid = COB_ETH_IsValidPhyId(COB_ETH_PHY_ID1, COB_ETH_PHY_ID2);
     }
     else
     {
       COB_ETH_PhyReadStatus = 0U;
+      COB_ETH_PhyIdValid = 0U;
     }
 
     if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_BSR, &phy_value) == HAL_OK)
@@ -428,6 +450,7 @@ void COB_ETH_UpdateDebugSnapshot(void)
   else
   {
     COB_ETH_PhyReadStatus = 0U;
+    COB_ETH_PhyIdValid = 0U;
   }
 }
 
