@@ -47,6 +47,8 @@ ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT * 2U];
 ETH_TxPacketConfig TxConfig;
 
 /* USER CODE BEGIN 0 */
+#define COB_ETH_PHY_MAX_ADDR 31U
+
 volatile uint32_t COB_ETH_DebugStage = 0U;
 volatile uint32_t COB_ETH_LastErrorCode = 0U;
 volatile uint32_t COB_ETH_LastDMAMR = 0U;
@@ -281,9 +283,9 @@ void COB_ETH_UpdateDebugSnapshot(void)
   COB_ETH_MMCRCRCEPR = eth->MMCRCRCEPR;
   COB_ETH_MMCRAEPR = eth->MMCRAEPR;
 
-  if (COB_ETH_PhyAddr > LAN8742_MAX_DEV_ADDR)
+  if (COB_ETH_PhyAddr > COB_ETH_PHY_MAX_ADDR)
   {
-    for (uint32_t addr = 0U; addr <= LAN8742_MAX_DEV_ADDR; addr++)
+    for (uint32_t addr = 0U; addr <= COB_ETH_PHY_MAX_ADDR; addr++)
     {
       if (HAL_ETH_ReadPHYRegister(&heth1, addr, LAN8742_SMR, &phy_value) == HAL_OK)
       {
@@ -296,7 +298,7 @@ void COB_ETH_UpdateDebugSnapshot(void)
     }
   }
 
-  if (COB_ETH_PhyAddr <= LAN8742_MAX_DEV_ADDR)
+  if (COB_ETH_PhyAddr <= COB_ETH_PHY_MAX_ADDR)
   {
     COB_ETH_PhyReadStatus = 1U;
 
