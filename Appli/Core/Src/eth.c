@@ -115,7 +115,7 @@ volatile uint32_t COB_ETH_RxDesc0_DESC3 = 0U;
 
 static uint32_t COB_ETH_IsValidPhyId(uint32_t id1, uint32_t id2)
 {
-  if (((id1 == 0U) && (id2 == 0U)) || ((id1 == 0xFFFFU) && (id2 == 0xFFFFU)))
+  if ((id1 == 0U) || (id1 == 0xFFFFU) || (id2 == 0U) || (id2 == 0xFFFFU))
   {
     return 0U;
   }
