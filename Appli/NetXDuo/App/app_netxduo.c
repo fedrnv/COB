@@ -83,6 +83,8 @@ volatile ULONG COB_NX_IcmpPingTimeouts = 0U;
 volatile ULONG COB_NX_IcmpPingResponsesReceived = 0U;
 volatile ULONG COB_NX_IcmpChecksumErrors = 0U;
 volatile ULONG COB_NX_IcmpUnhandledMessages = 0U;
+volatile ULONG COB_NX_PacketPoolMemoryAddr = 0U;
+volatile ULONG COB_NX_PacketPoolPayloadAddr = 0U;
 
 /* USER CODE END PV */
 
@@ -109,6 +111,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
+  COB_NX_PacketPoolMemoryAddr = (ULONG)cob_packet_pool_memory;
 
   if (tx_byte_allocate(byte_pool, (VOID **)&cob_arp_cache_memory,
                        COB_NETX_ARP_CACHE_SIZE, TX_NO_WAIT) != TX_SUCCESS)
@@ -145,6 +148,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
     COB_StatusLED_EthernetError();
     return ret;
   }
+  COB_NX_PacketPoolPayloadAddr = (ULONG)cob_packet_pool.nx_packet_pool_start;
 
   ret = nx_ip_create(&cob_ip, "COB IP", COB_NETX_IP_ADDRESS, COB_NETX_NETWORK_MASK,
                      &cob_packet_pool, nx_stm32_eth_driver,

@@ -61,6 +61,14 @@ volatile uint32_t COB_ETH_DMADSR = 0U;
 volatile uint32_t COB_ETH_DMACCR = 0U;
 volatile uint32_t COB_ETH_DMACTXCR = 0U;
 volatile uint32_t COB_ETH_DMACRXCR = 0U;
+volatile uint32_t COB_ETH_DMACTXDLAR = 0U;
+volatile uint32_t COB_ETH_DMACRXDLAR = 0U;
+volatile uint32_t COB_ETH_DMACTXDTPR = 0U;
+volatile uint32_t COB_ETH_DMACRXDTPR = 0U;
+volatile uint32_t COB_ETH_DMACCATXDR = 0U;
+volatile uint32_t COB_ETH_DMACCARXDR = 0U;
+volatile uint32_t COB_ETH_DMACCATXBR = 0U;
+volatile uint32_t COB_ETH_DMACCARXBR = 0U;
 volatile uint32_t COB_ETH_DMACSR = 0U;
 volatile uint32_t COB_ETH_DMACMFCR = 0U;
 volatile uint32_t COB_ETH_MMCTPCGR = 0U;
@@ -69,9 +77,15 @@ volatile uint32_t COB_ETH_MMCRCRCEPR = 0U;
 volatile uint32_t COB_ETH_MMCRAEPR = 0U;
 volatile uint32_t COB_ETH_PhyAddr = 0xFFFFFFFFU;
 volatile uint32_t COB_ETH_PhyReadStatus = 0U;
+volatile uint32_t COB_ETH_PHY_SMR = 0U;
+volatile uint32_t COB_ETH_PHY_ID1 = 0U;
+volatile uint32_t COB_ETH_PHY_ID2 = 0U;
 volatile uint32_t COB_ETH_PHY_BCR = 0U;
 volatile uint32_t COB_ETH_PHY_BSR = 0U;
 volatile uint32_t COB_ETH_PHY_PHYSCSR = 0U;
+volatile uint32_t COB_ETH_DMARxDscrTabAddr = 0U;
+volatile uint32_t COB_ETH_DMATxDscrTabAddr = 0U;
+volatile uint32_t COB_ETH_TxbufferAddr = 0U;
 
 /* USER CODE END 0 */
 
@@ -276,12 +290,23 @@ void COB_ETH_UpdateDebugSnapshot(void)
   COB_ETH_DMACCR = eth->DMA_CH[0].DMACCR;
   COB_ETH_DMACTXCR = eth->DMA_CH[0].DMACTXCR;
   COB_ETH_DMACRXCR = eth->DMA_CH[0].DMACRXCR;
+  COB_ETH_DMACTXDLAR = eth->DMA_CH[0].DMACTXDLAR;
+  COB_ETH_DMACRXDLAR = eth->DMA_CH[0].DMACRXDLAR;
+  COB_ETH_DMACTXDTPR = eth->DMA_CH[0].DMACTXDTPR;
+  COB_ETH_DMACRXDTPR = eth->DMA_CH[0].DMACRXDTPR;
+  COB_ETH_DMACCATXDR = eth->DMA_CH[0].DMACCATXDR;
+  COB_ETH_DMACCARXDR = eth->DMA_CH[0].DMACCARXDR;
+  COB_ETH_DMACCATXBR = eth->DMA_CH[0].DMACCATXBR;
+  COB_ETH_DMACCARXBR = eth->DMA_CH[0].DMACCARXBR;
   COB_ETH_DMACSR = eth->DMA_CH[0].DMACSR;
   COB_ETH_DMACMFCR = eth->DMA_CH[0].DMACMFCR;
   COB_ETH_MMCTPCGR = eth->MMCTPCGR;
   COB_ETH_MMCRUPGR = eth->MMCRUPGR;
   COB_ETH_MMCRCRCEPR = eth->MMCRCRCEPR;
   COB_ETH_MMCRAEPR = eth->MMCRAEPR;
+  COB_ETH_DMARxDscrTabAddr = (uint32_t)DMARxDscrTab;
+  COB_ETH_DMATxDscrTabAddr = (uint32_t)DMATxDscrTab;
+  COB_ETH_TxbufferAddr = (uint32_t)Txbuffer;
 
   if (COB_ETH_PhyAddr > COB_ETH_PHY_MAX_ADDR)
   {
@@ -305,6 +330,33 @@ void COB_ETH_UpdateDebugSnapshot(void)
     if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_BCR, &phy_value) == HAL_OK)
     {
       COB_ETH_PHY_BCR = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_SMR, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_SMR = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_PHYI1R, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_ID1 = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_PHYI2R, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_ID2 = phy_value;
     }
     else
     {
