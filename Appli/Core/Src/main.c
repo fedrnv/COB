@@ -50,6 +50,7 @@
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
 
@@ -68,6 +69,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  MPU_Config();
 
   /* USER CODE END 1 */
 
@@ -170,6 +172,42 @@ int main(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void MPU_Config(void)
+{
+  MPU_Region_InitTypeDef region_config = {0};
+  MPU_Attributes_InitTypeDef attr_config = {0};
+  uint32_t primask_bit = __get_PRIMASK();
+
+  __disable_irq();
+  HAL_MPU_Disable();
+
+  attr_config.Number = MPU_ATTRIBUTES_NUMBER0;
+  attr_config.Attributes = INNER_OUTER(MPU_RW_ALLOCATE);
+  HAL_MPU_ConfigMemoryAttributes(&attr_config);
+
+  region_config.Enable = MPU_REGION_ENABLE;
+  region_config.Number = MPU_REGION_NUMBER0;
+  region_config.BaseAddress = 0x341E8000;
+  region_config.LimitAddress = 0x341F7FFF;
+  region_config.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  region_config.AccessPermission = MPU_REGION_ALL_RW;
+  region_config.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  region_config.AttributesIndex = MPU_ATTRIBUTES_NUMBER0;
+  HAL_MPU_ConfigRegion(&region_config);
+
+  attr_config.Number = MPU_ATTRIBUTES_NUMBER1;
+  attr_config.Attributes = INNER_OUTER(MPU_DEVICE_NGNRNE);
+  HAL_MPU_ConfigMemoryAttributes(&attr_config);
+
+  region_config.Number = MPU_REGION_NUMBER1;
+  region_config.BaseAddress = 0x341F8000;
+  region_config.LimitAddress = 0x341F817F;
+  region_config.AttributesIndex = MPU_ATTRIBUTES_NUMBER1;
+  HAL_MPU_ConfigRegion(&region_config);
+
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+  __set_PRIMASK(primask_bit);
+}
 
 /* USER CODE END 4 */
 
