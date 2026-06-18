@@ -42,11 +42,32 @@ extern ETH_HandleTypeDef heth1;
 extern volatile uint32_t COB_ETH_DebugStage;
 extern volatile uint32_t COB_ETH_LastErrorCode;
 extern volatile uint32_t COB_ETH_LastDMAMR;
+extern volatile uint32_t COB_ETH_MACCR;
+extern volatile uint32_t COB_ETH_MACPFR;
+extern volatile uint32_t COB_ETH_MACA0HR;
+extern volatile uint32_t COB_ETH_MACA0LR;
+extern volatile uint32_t COB_ETH_DMAISR;
+extern volatile uint32_t COB_ETH_DMADSR;
+extern volatile uint32_t COB_ETH_DMACCR;
+extern volatile uint32_t COB_ETH_DMACTXCR;
+extern volatile uint32_t COB_ETH_DMACRXCR;
+extern volatile uint32_t COB_ETH_DMACSR;
+extern volatile uint32_t COB_ETH_DMACMFCR;
+extern volatile uint32_t COB_ETH_MMCTPCGR;
+extern volatile uint32_t COB_ETH_MMCRUPGR;
+extern volatile uint32_t COB_ETH_MMCRCRCEPR;
+extern volatile uint32_t COB_ETH_MMCRAEPR;
+extern volatile uint32_t COB_ETH_PhyAddr;
+extern volatile uint32_t COB_ETH_PhyReadStatus;
+extern volatile uint32_t COB_ETH_PHY_BCR;
+extern volatile uint32_t COB_ETH_PHY_BSR;
+extern volatile uint32_t COB_ETH_PHY_PHYSCSR;
 /* USER CODE END EV */
 
 void MX_ETH1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void COB_ETH_UpdateDebugSnapshot(void);
 
 /* USER CODE END Prototypes */
 

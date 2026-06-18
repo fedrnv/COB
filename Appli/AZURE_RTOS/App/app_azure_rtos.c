@@ -56,6 +56,11 @@ __ALIGN_BEGIN static UCHAR tx_byte_pool_buffer[TX_APP_MEM_POOL_SIZE] __ALIGN_END
 static TX_BYTE_POOL tx_app_byte_pool;
 
 /* USER CODE BEGIN NX_Pool_Buffer */
+#if defined ( __ICCARM__ )
+#pragma location = ".NetXPoolSection"
+#else
+__attribute__((section(".NetXPoolSection")))
+#endif
 /* USER CODE END NX_Pool_Buffer */
 #if defined ( __ICCARM__ )
 #pragma data_alignment=4

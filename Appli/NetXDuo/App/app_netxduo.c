@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "eth.h"
 #include "gpio.h"
 
 /* USER CODE END Includes */
@@ -219,6 +220,7 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     }
 
     (void)nx_ip_address_get(&cob_ip, (ULONG *)&COB_NX_IpAddress, (ULONG *)&COB_NX_NetworkMask);
+    COB_ETH_UpdateDebugSnapshot();
 
     (void)nx_ip_info_get(&cob_ip,
                          (ULONG *)&COB_NX_IpPacketsSent,

@@ -42,6 +42,7 @@
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define  MULTI_QUEUE_FEATURE
 
 /* USER CODE END EM */
 

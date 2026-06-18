@@ -22,19 +22,20 @@
 #include "string.h"
 /* USER CODE BEGIN Includes */
 #include "gpio.h"
+#include "lan8742.h"
 /* USER CODE END Includes */
 
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
 
-#pragma location=0x34100000
+#pragma location=0x341F8000
 ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-#pragma location=0x341000C0
+#pragma location=0x341F80C0
 ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 
 #elif defined ( __CC_ARM )  /* MDK ARM Compiler */
 
-__attribute__((at(0x34100000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-__attribute__((at(0x341000C0))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
+__attribute__((at(0x341F8000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
+__attribute__((at(0x341F80C0))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 
 #elif defined ( __GNUC__ ) /* GNU Compiler */
 
@@ -49,6 +50,26 @@ ETH_TxPacketConfig TxConfig;
 volatile uint32_t COB_ETH_DebugStage = 0U;
 volatile uint32_t COB_ETH_LastErrorCode = 0U;
 volatile uint32_t COB_ETH_LastDMAMR = 0U;
+volatile uint32_t COB_ETH_MACCR = 0U;
+volatile uint32_t COB_ETH_MACPFR = 0U;
+volatile uint32_t COB_ETH_MACA0HR = 0U;
+volatile uint32_t COB_ETH_MACA0LR = 0U;
+volatile uint32_t COB_ETH_DMAISR = 0U;
+volatile uint32_t COB_ETH_DMADSR = 0U;
+volatile uint32_t COB_ETH_DMACCR = 0U;
+volatile uint32_t COB_ETH_DMACTXCR = 0U;
+volatile uint32_t COB_ETH_DMACRXCR = 0U;
+volatile uint32_t COB_ETH_DMACSR = 0U;
+volatile uint32_t COB_ETH_DMACMFCR = 0U;
+volatile uint32_t COB_ETH_MMCTPCGR = 0U;
+volatile uint32_t COB_ETH_MMCRUPGR = 0U;
+volatile uint32_t COB_ETH_MMCRCRCEPR = 0U;
+volatile uint32_t COB_ETH_MMCRAEPR = 0U;
+volatile uint32_t COB_ETH_PhyAddr = 0xFFFFFFFFU;
+volatile uint32_t COB_ETH_PhyReadStatus = 0U;
+volatile uint32_t COB_ETH_PHY_BCR = 0U;
+volatile uint32_t COB_ETH_PHY_BSR = 0U;
+volatile uint32_t COB_ETH_PHY_PHYSCSR = 0U;
 
 /* USER CODE END 0 */
 
@@ -131,8 +152,9 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
   /** Initializes the peripherals clock
   */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1 | RCC_PERIPHCLK_ETH1PHY;
     PeriphClkInitStruct.Eth1ClockSelection = RCC_ETH1CLKSOURCE_HCLK;
+    PeriphClkInitStruct.Eth1PhyInterfaceSelection = RCC_ETH1PHYIF_RMII;
 
   /* USER CODE BEGIN MACADDRESS */
 
@@ -231,5 +253,84 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void COB_ETH_UpdateDebugSnapshot(void)
+{
+  ETH_TypeDef *eth = heth1.Instance;
+  uint32_t phy_value;
+
+  if (eth == NULL)
+  {
+    return;
+  }
+
+  COB_ETH_LastErrorCode = heth1.ErrorCode;
+  COB_ETH_LastDMAMR = eth->DMAMR;
+  COB_ETH_MACCR = eth->MACCR;
+  COB_ETH_MACPFR = eth->MACPFR;
+  COB_ETH_MACA0HR = eth->MACA0HR;
+  COB_ETH_MACA0LR = eth->MACA0LR;
+  COB_ETH_DMAISR = eth->DMAISR;
+  COB_ETH_DMADSR = eth->DMADSR;
+  COB_ETH_DMACCR = eth->DMA_CH[0].DMACCR;
+  COB_ETH_DMACTXCR = eth->DMA_CH[0].DMACTXCR;
+  COB_ETH_DMACRXCR = eth->DMA_CH[0].DMACRXCR;
+  COB_ETH_DMACSR = eth->DMA_CH[0].DMACSR;
+  COB_ETH_DMACMFCR = eth->DMA_CH[0].DMACMFCR;
+  COB_ETH_MMCTPCGR = eth->MMCTPCGR;
+  COB_ETH_MMCRUPGR = eth->MMCRUPGR;
+  COB_ETH_MMCRCRCEPR = eth->MMCRCRCEPR;
+  COB_ETH_MMCRAEPR = eth->MMCRAEPR;
+
+  if (COB_ETH_PhyAddr > LAN8742_MAX_DEV_ADDR)
+  {
+    for (uint32_t addr = 0U; addr <= LAN8742_MAX_DEV_ADDR; addr++)
+    {
+      if (HAL_ETH_ReadPHYRegister(&heth1, addr, LAN8742_SMR, &phy_value) == HAL_OK)
+      {
+        if ((phy_value & LAN8742_SMR_PHY_ADDR) == addr)
+        {
+          COB_ETH_PhyAddr = addr;
+          break;
+        }
+      }
+    }
+  }
+
+  if (COB_ETH_PhyAddr <= LAN8742_MAX_DEV_ADDR)
+  {
+    COB_ETH_PhyReadStatus = 1U;
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_BCR, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_BCR = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_BSR, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_BSR = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+
+    if (HAL_ETH_ReadPHYRegister(&heth1, COB_ETH_PhyAddr, LAN8742_PHYSCSR, &phy_value) == HAL_OK)
+    {
+      COB_ETH_PHY_PHYSCSR = phy_value;
+    }
+    else
+    {
+      COB_ETH_PhyReadStatus = 0U;
+    }
+  }
+  else
+  {
+    COB_ETH_PhyReadStatus = 0U;
+  }
+}
 
 /* USER CODE END 1 */

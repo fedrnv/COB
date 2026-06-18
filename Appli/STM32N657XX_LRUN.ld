@@ -240,6 +240,21 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
+  .nx_data (NOLOAD) :
+  {
+    . = ABSOLUTE(0x341E8000);
+    *(.NetXPoolSection)
+  } >RAM
+
+  .tcp_sec (NOLOAD) :
+  {
+    . = ABSOLUTE(0x341F8000);
+    *(.RxDecripSection)
+
+    . = ABSOLUTE(0x341F80C0);
+    *(.TxDecripSection)
+  } >RAM
+
   /* Remove information from the compiler libraries */
   /DISCARD/ :
   {
