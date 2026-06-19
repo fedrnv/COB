@@ -19,6 +19,12 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/CMSIS/Device/ST/STM32N6xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/psram
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/lan8742
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/tsn/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet
@@ -35,7 +41,14 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/eth.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/extmem_manager.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/gpdma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/pssi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/usart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/xspim.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32n6xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/secure_nsc.c
@@ -49,25 +62,30 @@ set(MX_Application_Src
 set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/system_stm32n6xx_s.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_cortex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rcc_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_dma_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pwr_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_exti.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_uart_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_uart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_eth.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_eth_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_pssi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_rif.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_spi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_spi_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/STM32N6xx_HAL_Driver/Src/stm32n6xx_hal_xspi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Drivers/BSP/Components/lan8742/lan8742.c
 )
 
 # Drivers Midllewares
 
 set(netxduo_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet/nx_stm32_eth_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet/lan8742/nx_stm32_phy_driver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/tsn/src/nx_shaper.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_arp_announce_send.c
@@ -559,6 +577,17 @@ set(netxduo_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_invalidate.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nxd_nd_cache_ip_address_find.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/src/nx_http_proxy_client.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/netxduo/common/drivers/ethernet/nx_stm32_eth_driver.c
+)
+set(STM32_ExtMem_Manager_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/stm32_extmem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_xspi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sal/stm32_sal_sd.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/nor_sfdp/stm32_sfdp_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/psram/stm32_psram_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/sdcard/stm32_sdcard_driver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/STM32_ExtMem_Manager/user/stm32_user_driver.c
 )
 set(threadx_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../Middlewares/ST/threadx/ports/cortex_m55/gnu/src/tx_thread_secure_stack_initialize.S
@@ -741,7 +770,7 @@ set(MX_LINK_DIRS
 set (MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    netxduo	threadx	
+    netxduo	STM32_ExtMem_Manager	threadx	
     
 )
 # Interface library for includes and symbols
@@ -758,6 +787,11 @@ target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
 add_library(netxduo OBJECT)
 target_sources(netxduo PRIVATE ${netxduo_Src})
 target_link_libraries(netxduo PUBLIC stm32cubemx)
+
+# Create STM32_ExtMem_Manager static library
+add_library(STM32_ExtMem_Manager OBJECT)
+target_sources(STM32_ExtMem_Manager PRIVATE ${STM32_ExtMem_Manager_Src})
+target_link_libraries(STM32_ExtMem_Manager PUBLIC stm32cubemx)
 
 # Create threadx static library
 add_library(threadx OBJECT)

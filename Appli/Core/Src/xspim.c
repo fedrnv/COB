@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    eth.h
-  * @brief   This file contains all the function prototypes for
-  *          the eth.c file
+  * @file    xspim.c
+  * @brief   This file provides code for the configuration
+  *          of the XSPIM instances.
   ******************************************************************************
   * @attention
   *
@@ -17,37 +17,31 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __ETH_H__
-#define __ETH_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "xspim.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN 0 */
 
-/* USER CODE END Includes */
+/* USER CODE END 0 */
 
-extern ETH_HandleTypeDef heth1;
+/* XSPIM init function */
+void MX_XSPIM_Init(void)
+{
 
-/* USER CODE BEGIN Private defines */
+  /* USER CODE BEGIN XSPIM_Init 0 */
 
-/* USER CODE END Private defines */
+  /* USER CODE END XSPIM_Init 0 */
 
-void MX_ETH1_Init(void);
+  /* USER CODE BEGIN XSPIM_Init 1 */
 
-/* USER CODE BEGIN Prototypes */
-void COB_ETH_UpdateDebugSnapshot(void);
+  /* USER CODE END XSPIM_Init 1 */
+  /* USER CODE BEGIN XSPIM_Init 2 */
 
-/* USER CODE END Prototypes */
+  /* USER CODE END XSPIM_Init 2 */
 
-#ifdef __cplusplus
 }
-#endif
 
-#endif /* __ETH_H__ */
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
 

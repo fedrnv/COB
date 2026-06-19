@@ -20,22 +20,18 @@
 /* Includes ------------------------------------------------------------------*/
 #include "eth.h"
 #include "string.h"
-/* USER CODE BEGIN Includes */
-#include "gpio.h"
-#include "lan8742.h"
-/* USER CODE END Includes */
 
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
 
-#pragma location=0x341F8000
+#pragma location=0x34100000
 ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-#pragma location=0x341F80C0
+#pragma location=0x341000C0
 ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 
 #elif defined ( __CC_ARM )  /* MDK ARM Compiler */
 
-__attribute__((at(0x341F8000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-__attribute__((at(0x341F80C0))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
+__attribute__((at(0x34100000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_DMA_RX_CH_CNT][ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
+__attribute__((at(0x341000C0))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_DMA_TX_CH_CNT][ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 
 #elif defined ( __GNUC__ ) /* GNU Compiler */
 
@@ -172,13 +168,8 @@ void MX_ETH1_Init(void)
 
   /* USER CODE END MACADDRESS */
 
-  COB_ETH_DebugStage = 90U;
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
-    COB_ETH_DebugStage = 900U;
-    COB_ETH_LastErrorCode = heth1.ErrorCode;
-    COB_ETH_LastDMAMR = heth1.Instance->DMAMR;
-    COB_StatusLED_EthernetError();
     Error_Handler();
   }
   /* USER CODE BEGIN ETH1_Init 2 */
@@ -204,22 +195,25 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
   /** Initializes the peripherals clock
   */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1 | RCC_PERIPHCLK_ETH1PHY;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1;
     PeriphClkInitStruct.Eth1ClockSelection = RCC_ETH1CLKSOURCE_HCLK;
-    PeriphClkInitStruct.Eth1PhyInterfaceSelection = RCC_ETH1PHYIF_RMII;
 
   /* USER CODE BEGIN MACADDRESS */
+  MACAddr[0] = 0x02;
+  MACAddr[1] = 0x00;
+  MACAddr[2] = 0x00;
+  MACAddr[3] = 0x00;
+  MACAddr[4] = 0x01;
+  MACAddr[5] = 0x88;
 
   /* USER CODE END MACADDRESS */
 
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
-      COB_ETH_DebugStage = 910U;
       Error_Handler();
     }
 
     /* ETH1 clock enable */
-    COB_ETH_DebugStage = 20U;
     __HAL_RCC_ETH1_CLK_ENABLE();
     __HAL_RCC_ETH1MAC_CLK_ENABLE();
     __HAL_RCC_ETH1TX_CLK_ENABLE();
@@ -244,17 +238,16 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
                           |GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-    COB_ETH_DebugStage = 30U;
 
     /* ETH1 interrupt Init */
     HAL_NVIC_SetPriority(ETH1_IRQn, 0, 0);
@@ -457,3 +450,4 @@ void COB_ETH_UpdateDebugSnapshot(void)
 }
 
 /* USER CODE END 1 */
+

@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    gpio.h
-  * @brief   This file contains all the function prototypes for
-  *          the gpio.c file
+  * @file           : extmem_manager.h
+  * @version        : 1.0.0
+  * @brief          : Header for secure_manager_api.c file.
   ******************************************************************************
   * @attention
   *
@@ -17,38 +17,51 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
+
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __GPIO_H__
-#define __GPIO_H__
+#ifndef __MX_EXTMEM__H__
+#define __MX_EXTMEM__H__
 
 #ifdef __cplusplus
-extern "C" {
+ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "stm32_extmem_conf.h"
 
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN INCLUDE */
 
-/* USER CODE END Includes */
+/* USER CODE END INCLUDE */
 
-/* USER CODE BEGIN Private defines */
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN PV */
 
-/* USER CODE END Private defines */
+/* USER CODE END PV */
 
-void MX_GPIO_Init(void);
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN PFP */
 
-/* USER CODE BEGIN Prototypes */
-void COB_StatusLED_Init(void);
-void COB_StatusLED_EthernetStarting(void);
-void COB_StatusLED_EthernetReady(void);
-void COB_StatusLED_EthernetError(void);
-void COB_StatusLED_BlueToggle(void);
+/* USER CODE END PFP */
 
-/* USER CODE END Prototypes */
+/*
+ * -- Insert your variables declaration here --
+ */
+/* USER CODE BEGIN VARIABLES */
+
+/* USER CODE END VARIABLES */
+
+void MX_EXTMEM_MANAGER_Init(void);
+
+/*
+ * -- Insert functions declaration here --
+ */
+/* USER CODE BEGIN FD */
+
+/* USER CODE END FD */
 
 #ifdef __cplusplus
 }
 #endif
-#endif /*__ GPIO_H__ */
+
+#endif /* __MX_EXTMEM__H__ */
 
