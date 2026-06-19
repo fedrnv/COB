@@ -112,6 +112,8 @@ volatile uint32_t COB_ETH_RxDesc0_DESC1 = 0U;
 volatile uint32_t COB_ETH_RxDesc0_DESC2 = 0U;
 volatile uint32_t COB_ETH_RxDesc0_DESC3 = 0U;
 
+void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle);
+
 static uint32_t COB_ETH_IsValidPhyId(uint32_t id1, uint32_t id2)
 {
   if ((id1 == 0U) || (id1 == 0xFFFFU) || (id2 == 0U) || (id2 == 0xFFFFU))
@@ -173,9 +175,7 @@ void MX_ETH1_Init(void)
   /* USER CODE END MACADDRESS */
 
   COB_ETH_DebugStage = 2U;
-  HAL_ETH_MspInit(&heth1);
   COB_ETH_DebugStage = 3U;
-  heth1.gState = HAL_ETH_STATE_BUSY;
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
     COB_ETH_DebugStage = 900U;
@@ -197,6 +197,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  COB_ETH_DebugStage = 6U;
   if(ethHandle->Instance==ETH1)
   {
   /* USER CODE BEGIN ETH1_MspInit 0 */
