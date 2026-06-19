@@ -42,6 +42,13 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 volatile uint32_t COB_ETH_IrqCount = 0U;
+volatile uint32_t COB_FaultHandler = 0U;
+volatile uint32_t COB_FaultCFSR = 0U;
+volatile uint32_t COB_FaultHFSR = 0U;
+volatile uint32_t COB_FaultMMFAR = 0U;
+volatile uint32_t COB_FaultBFAR = 0U;
+volatile uint32_t COB_FaultSFSR = 0U;
+volatile uint32_t COB_FaultSFAR = 0U;
 
 /* USER CODE END PV */
 
@@ -85,6 +92,13 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+  COB_FaultHandler = 1U;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
 
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
@@ -100,6 +114,13 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+  COB_FaultHandler = 2U;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
 
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
@@ -115,6 +136,13 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
+  COB_FaultHandler = 3U;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
 
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
@@ -130,6 +158,13 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
+  COB_FaultHandler = 4U;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
 
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
@@ -145,6 +180,13 @@ void UsageFault_Handler(void)
 void SecureFault_Handler(void)
 {
   /* USER CODE BEGIN SecureFault_IRQn 0 */
+  COB_FaultHandler = 5U;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
 
   /* USER CODE END SecureFault_IRQn 0 */
   while (1)
