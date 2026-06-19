@@ -95,6 +95,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  COB_StatusLED_Init();
+  COB_StatusLED_EthernetStarting();
   MX_GPDMA1_Init();
   SystemIsolation_Config();
   MX_ETH1_Init();
