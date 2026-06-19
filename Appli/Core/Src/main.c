@@ -89,6 +89,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
   COB_MainStage = 10U;
+  HAL_SuspendTick();
+  COB_MainStage = 11U;
 
   /* USER CODE BEGIN Init */
 
@@ -130,7 +132,6 @@ int main(void)
 
   /* USER CODE END 2 */
 
-  HAL_SuspendTick();
   COB_MainStage = 110U;
   MX_ThreadX_Init();
 
