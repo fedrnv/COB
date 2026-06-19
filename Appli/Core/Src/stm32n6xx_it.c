@@ -49,16 +49,55 @@ volatile uint32_t COB_FaultMMFAR = 0U;
 volatile uint32_t COB_FaultBFAR = 0U;
 volatile uint32_t COB_FaultSFSR = 0U;
 volatile uint32_t COB_FaultSFAR = 0U;
+volatile uint32_t COB_FaultExcReturn = 0U;
+volatile uint32_t COB_FaultStackPtr = 0U;
+volatile uint32_t COB_FaultStackedR0 = 0U;
+volatile uint32_t COB_FaultStackedR1 = 0U;
+volatile uint32_t COB_FaultStackedR2 = 0U;
+volatile uint32_t COB_FaultStackedR3 = 0U;
+volatile uint32_t COB_FaultStackedR12 = 0U;
+volatile uint32_t COB_FaultStackedLR = 0U;
+volatile uint32_t COB_FaultStackedPC = 0U;
+volatile uint32_t COB_FaultStackedXPSR = 0U;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+static void COB_Fault_Record(uint32_t handler, uint32_t *stack, uint32_t exc_return) __attribute__((noreturn));
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void COB_Fault_Record(uint32_t handler, uint32_t *stack, uint32_t exc_return)
+{
+  COB_FaultHandler = handler;
+  COB_FaultCFSR = SCB->CFSR;
+  COB_FaultHFSR = SCB->HFSR;
+  COB_FaultMMFAR = SCB->MMFAR;
+  COB_FaultBFAR = SCB->BFAR;
+  COB_FaultSFSR = SCB->SFSR;
+  COB_FaultSFAR = SCB->SFAR;
+  COB_FaultExcReturn = exc_return;
+  COB_FaultStackPtr = (uint32_t)stack;
+
+  if (stack != NULL)
+  {
+    COB_FaultStackedR0 = stack[0];
+    COB_FaultStackedR1 = stack[1];
+    COB_FaultStackedR2 = stack[2];
+    COB_FaultStackedR3 = stack[3];
+    COB_FaultStackedR12 = stack[4];
+    COB_FaultStackedLR = stack[5];
+    COB_FaultStackedPC = stack[6];
+    COB_FaultStackedXPSR = stack[7];
+  }
+
+  while (1)
+  {
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -89,23 +128,19 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
+void HardFault_Handler(void) __attribute__((naked));
 void HardFault_Handler(void)
 {
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-  COB_FaultHandler = 1U;
-  COB_FaultCFSR = SCB->CFSR;
-  COB_FaultHFSR = SCB->HFSR;
-  COB_FaultMMFAR = SCB->MMFAR;
-  COB_FaultBFAR = SCB->BFAR;
-  COB_FaultSFSR = SCB->SFSR;
-  COB_FaultSFAR = SCB->SFAR;
-
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
+  __asm volatile
+  (
+    "tst lr, #4        \n"
+    "ite eq            \n"
+    "mrseq r1, msp     \n"
+    "mrsne r1, psp     \n"
+    "mov r2, lr        \n"
+    "movs r0, #1       \n"
+    "b COB_Fault_Record\n"
+  );
 }
 
 /**
@@ -114,13 +149,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-  COB_FaultHandler = 2U;
-  COB_FaultCFSR = SCB->CFSR;
-  COB_FaultHFSR = SCB->HFSR;
-  COB_FaultMMFAR = SCB->MMFAR;
-  COB_FaultBFAR = SCB->BFAR;
-  COB_FaultSFSR = SCB->SFSR;
-  COB_FaultSFAR = SCB->SFAR;
+  COB_Fault_Record(2U, (uint32_t *)__get_MSP(), 0U);
 
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
@@ -136,13 +165,7 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-  COB_FaultHandler = 3U;
-  COB_FaultCFSR = SCB->CFSR;
-  COB_FaultHFSR = SCB->HFSR;
-  COB_FaultMMFAR = SCB->MMFAR;
-  COB_FaultBFAR = SCB->BFAR;
-  COB_FaultSFSR = SCB->SFSR;
-  COB_FaultSFAR = SCB->SFAR;
+  COB_Fault_Record(3U, (uint32_t *)__get_MSP(), 0U);
 
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
@@ -158,13 +181,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-  COB_FaultHandler = 4U;
-  COB_FaultCFSR = SCB->CFSR;
-  COB_FaultHFSR = SCB->HFSR;
-  COB_FaultMMFAR = SCB->MMFAR;
-  COB_FaultBFAR = SCB->BFAR;
-  COB_FaultSFSR = SCB->SFSR;
-  COB_FaultSFAR = SCB->SFAR;
+  COB_Fault_Record(4U, (uint32_t *)__get_MSP(), 0U);
 
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
@@ -180,13 +197,7 @@ void UsageFault_Handler(void)
 void SecureFault_Handler(void)
 {
   /* USER CODE BEGIN SecureFault_IRQn 0 */
-  COB_FaultHandler = 5U;
-  COB_FaultCFSR = SCB->CFSR;
-  COB_FaultHFSR = SCB->HFSR;
-  COB_FaultMMFAR = SCB->MMFAR;
-  COB_FaultBFAR = SCB->BFAR;
-  COB_FaultSFSR = SCB->SFSR;
-  COB_FaultSFAR = SCB->SFAR;
+  COB_Fault_Record(5U, (uint32_t *)__get_MSP(), 0U);
 
   /* USER CODE END SecureFault_IRQn 0 */
   while (1)
