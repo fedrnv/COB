@@ -83,7 +83,6 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
-  HAL_SuspendTick();
 
   /* USER CODE BEGIN Init */
 
@@ -112,6 +111,7 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  HAL_SuspendTick();
   MX_ThreadX_Init();
 
   /* We should never get here as control is now taken by the scheduler */
