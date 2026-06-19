@@ -60,6 +60,7 @@ typedef funcptr funcptr_NS;
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern volatile uint32_t COB_MainStage;
+extern volatile uint32_t COB_RIFStage;
 
 /* USER CODE END EC */
 
