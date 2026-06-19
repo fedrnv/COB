@@ -173,6 +173,9 @@ void MX_ETH1_Init(void)
   /* USER CODE END MACADDRESS */
 
   COB_ETH_DebugStage = 2U;
+  HAL_ETH_MspInit(&heth1);
+  COB_ETH_DebugStage = 3U;
+  heth1.gState = HAL_ETH_STATE_BUSY;
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
     COB_ETH_DebugStage = 900U;
