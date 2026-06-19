@@ -85,6 +85,8 @@ volatile ULONG COB_NX_IcmpChecksumErrors = 0U;
 volatile ULONG COB_NX_IcmpUnhandledMessages = 0U;
 volatile ULONG COB_NX_PacketPoolMemoryAddr = 0U;
 volatile ULONG COB_NX_PacketPoolPayloadAddr = 0U;
+volatile ULONG COB_NX_InitStage = 0U;
+volatile ULONG COB_NX_LastStatus = 0U;
 
 /* USER CODE END PV */
 
@@ -105,9 +107,11 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
 
   /* USER CODE BEGIN MX_NetXDuo_MEM_POOL */
+  COB_NX_InitStage = 1U;
   if (tx_byte_allocate(byte_pool, (VOID **)&cob_packet_pool_memory,
                        COB_NETX_PACKET_POOL_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
+    COB_NX_InitStage = 10U;
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
@@ -116,6 +120,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   if (tx_byte_allocate(byte_pool, (VOID **)&cob_arp_cache_memory,
                        COB_NETX_ARP_CACHE_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
+    COB_NX_InitStage = 11U;
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
@@ -123,6 +128,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   if (tx_byte_allocate(byte_pool, (VOID **)&cob_ip_stack_memory,
                        COB_NETX_IP_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
+    COB_NX_InitStage = 12U;
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
@@ -130,6 +136,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   if (tx_byte_allocate(byte_pool, (VOID **)&cob_status_stack_memory,
                        COB_NETX_STATUS_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
+    COB_NX_InitStage = 13U;
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
@@ -143,8 +150,10 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   ret = nx_packet_pool_create(&cob_packet_pool, "COB NetX packet pool",
                               COB_NETX_PACKET_SIZE, cob_packet_pool_memory,
                               COB_NETX_PACKET_POOL_SIZE);
+  COB_NX_LastStatus = ret;
   if (ret != NX_SUCCESS)
   {
+    COB_NX_InitStage = 20U;
     COB_StatusLED_EthernetError();
     return ret;
   }
@@ -153,22 +162,28 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   ret = nx_ip_create(&cob_ip, "COB IP", COB_NETX_IP_ADDRESS, COB_NETX_NETWORK_MASK,
                      &cob_packet_pool, nx_stm32_eth_driver,
                      cob_ip_stack_memory, COB_NETX_IP_STACK_SIZE, 1U);
+  COB_NX_LastStatus = ret;
   if (ret != NX_SUCCESS)
   {
+    COB_NX_InitStage = 21U;
     COB_StatusLED_EthernetError();
     return ret;
   }
 
   ret = nx_arp_enable(&cob_ip, cob_arp_cache_memory, COB_NETX_ARP_CACHE_SIZE);
+  COB_NX_LastStatus = ret;
   if (ret != NX_SUCCESS)
   {
+    COB_NX_InitStage = 22U;
     COB_StatusLED_EthernetError();
     return ret;
   }
 
   ret = nx_icmp_enable(&cob_ip);
+  COB_NX_LastStatus = ret;
   if (ret != NX_SUCCESS)
   {
+    COB_NX_InitStage = 23U;
     COB_StatusLED_EthernetError();
     return ret;
   }
@@ -178,9 +193,11 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
                        cob_status_stack_memory, COB_NETX_STATUS_STACK_SIZE,
                        5U, 5U, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
   {
+    COB_NX_InitStage = 24U;
     COB_StatusLED_EthernetError();
     return NX_NOT_SUCCESSFUL;
   }
+  COB_NX_InitStage = 30U;
   /* USER CODE END MX_NetXDuo_Init */
 
   return ret;

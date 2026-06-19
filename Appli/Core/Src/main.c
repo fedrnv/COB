@@ -100,6 +100,7 @@ int main(void)
   MX_GPDMA1_Init();
   SystemIsolation_Config();
   MX_ETH1_Init();
+  COB_ETH_UpdateDebugSnapshot();
   MX_PSSI_Init();
   MX_SPI5_Init();
   MX_USART3_UART_Init();

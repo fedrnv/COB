@@ -42,6 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+volatile UINT COB_AZURE_Stage = 0U;
+volatile UINT COB_AZURE_LastStatus = 0U;
 
 /* USER CODE END PV */
 
@@ -83,6 +85,7 @@ static TX_BYTE_POOL nx_app_byte_pool;
 VOID tx_application_define(VOID *first_unused_memory)
 {
   /* USER CODE BEGIN  tx_application_define_1*/
+  COB_AZURE_Stage = 1U;
 
   /* USER CODE END  tx_application_define_1 */
 #if (USE_STATIC_ALLOCATION == 1)
@@ -92,26 +95,31 @@ VOID tx_application_define(VOID *first_unused_memory)
   if (tx_byte_pool_create(&tx_app_byte_pool, "Tx App memory pool", tx_byte_pool_buffer, TX_APP_MEM_POOL_SIZE) != TX_SUCCESS)
   {
     /* USER CODE BEGIN TX_Byte_Pool_Error */
+    COB_AZURE_Stage = 10U;
 
     /* USER CODE END TX_Byte_Pool_Error */
   }
   else
   {
     /* USER CODE BEGIN TX_Byte_Pool_Success */
+    COB_AZURE_Stage = 11U;
 
     /* USER CODE END TX_Byte_Pool_Success */
 
     memory_ptr = (VOID *)&tx_app_byte_pool;
     status = App_ThreadX_Init(memory_ptr);
+    COB_AZURE_LastStatus = status;
     if (status != TX_SUCCESS)
     {
       /* USER CODE BEGIN  App_ThreadX_Init_Error */
+      COB_AZURE_Stage = 12U;
       while(1)
       {
       }
       /* USER CODE END  App_ThreadX_Init_Error */
     }
     /* USER CODE BEGIN  App_ThreadX_Init_Success */
+    COB_AZURE_Stage = 13U;
 
     /* USER CODE END  App_ThreadX_Init_Success */
 
@@ -120,26 +128,31 @@ VOID tx_application_define(VOID *first_unused_memory)
   if (tx_byte_pool_create(&nx_app_byte_pool, "Nx App memory pool", nx_byte_pool_buffer, NX_APP_MEM_POOL_SIZE) != TX_SUCCESS)
   {
     /* USER CODE BEGIN NX_Byte_Pool_Error */
+    COB_AZURE_Stage = 20U;
 
     /* USER CODE END NX_Byte_Pool_Error */
   }
   else
   {
     /* USER CODE BEGIN NX_Byte_Pool_Success */
+    COB_AZURE_Stage = 21U;
 
     /* USER CODE END NX_Byte_Pool_Success */
 
     memory_ptr = (VOID *)&nx_app_byte_pool;
     status = MX_NetXDuo_Init(memory_ptr);
+    COB_AZURE_LastStatus = status;
     if (status != NX_SUCCESS)
     {
       /* USER CODE BEGIN  MX_NetXDuo_Init_Error */
+      COB_AZURE_Stage = 22U;
       while(1)
       {
       }
       /* USER CODE END  MX_NetXDuo_Init_Error */
     }
     /* USER CODE BEGIN  MX_NetXDuo_Init_Success */
+    COB_AZURE_Stage = 23U;
 
     /* USER CODE END MX_NetXDuo_Init_Success */
 
