@@ -58,6 +58,7 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0 ;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+static void MPU_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
 
@@ -82,6 +83,7 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
+  HAL_SuspendTick();
 
   /* USER CODE BEGIN Init */
 
@@ -94,13 +96,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_GPDMA1_Init();
+  SystemIsolation_Config();
   MX_ETH1_Init();
   MX_PSSI_Init();
   MX_SPI5_Init();
   MX_USART3_UART_Init();
   MX_XSPI1_Init();
   MX_XSPI2_Init();
-  SystemIsolation_Config();
   MX_EXTMEM_MANAGER_Init();
   /* USER CODE BEGIN 2 */
   COB_EthernetExchange_Init(NULL, NULL);
@@ -142,10 +144,11 @@ int main(void)
   /*RIMC configuration*/
   RIMC_MasterConfig_t RIMC_master = {0};
   RIMC_master.MasterCID = RIF_CID_1;
-  RIMC_master.SecPriv = RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_NPRIV;
+  RIMC_master.SecPriv = RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV;
   HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_ETH1, &RIMC_master);
 
   /* RIF-Aware IPs Config */
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_ETH1, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
 
   /* set up GPDMA configuration */
   /* set GPDMA1 channel 0 used by GPDMA1 */
