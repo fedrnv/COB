@@ -142,6 +142,7 @@ void MX_ETH1_Init(void)
   /* USER CODE END ETH1_Init 1 */
 
   memset(&TxConfig, 0 , sizeof(ETH_TxPacketConfig));
+  memset(&heth1, 0, sizeof(ETH_HandleTypeDef));
   TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
   TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
   TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT;
@@ -171,8 +172,12 @@ void MX_ETH1_Init(void)
 
   /* USER CODE END MACADDRESS */
 
+  COB_ETH_DebugStage = 2U;
   if (HAL_ETH_Init(&heth1) != HAL_OK)
   {
+    COB_ETH_DebugStage = 900U;
+    COB_ETH_LastErrorCode = heth1.ErrorCode;
+    COB_ETH_LastDMAMR = heth1.Instance->DMAMR;
     Error_Handler();
   }
   /* USER CODE BEGIN ETH1_Init 2 */
@@ -198,8 +203,9 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
   /** Initializes the peripherals clock
   */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1 | RCC_PERIPHCLK_ETH1PHY;
     PeriphClkInitStruct.Eth1ClockSelection = RCC_ETH1CLKSOURCE_HCLK;
+    PeriphClkInitStruct.Eth1PhyInterfaceSelection = RCC_ETH1PHYIF_RMII;
 
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
