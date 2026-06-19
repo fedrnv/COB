@@ -20,6 +20,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "eth.h"
 #include "string.h"
+/* USER CODE BEGIN Includes */
+#include "lan8742.h"
+/* USER CODE END Includes */
 
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
 
@@ -197,16 +200,6 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1;
     PeriphClkInitStruct.Eth1ClockSelection = RCC_ETH1CLKSOURCE_HCLK;
-
-  /* USER CODE BEGIN MACADDRESS */
-  MACAddr[0] = 0x02;
-  MACAddr[1] = 0x00;
-  MACAddr[2] = 0x00;
-  MACAddr[3] = 0x00;
-  MACAddr[4] = 0x01;
-  MACAddr[5] = 0x88;
-
-  /* USER CODE END MACADDRESS */
 
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
@@ -450,4 +443,3 @@ void COB_ETH_UpdateDebugSnapshot(void)
 }
 
 /* USER CODE END 1 */
-
