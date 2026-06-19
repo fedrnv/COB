@@ -243,15 +243,37 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     PF12     ------> ETH1_RMII_TXD0
     PG11     ------> ETH1_MDC
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_10|GPIO_PIN_7|GPIO_PIN_5
-                          |GPIO_PIN_15|GPIO_PIN_14|GPIO_PIN_11|GPIO_PIN_13
-                          |GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
+    GPIO_InitStruct.Pin = GPIO_PIN_4;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-    COB_ETH_DebugStage = 30U;
+    COB_ETH_DebugStage = 201U;
+    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 202U;
+    GPIO_InitStruct.Pin = GPIO_PIN_7;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 203U;
+    GPIO_InitStruct.Pin = GPIO_PIN_10;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 204U;
+    GPIO_InitStruct.Pin = GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 205U;
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 206U;
+    GPIO_InitStruct.Pin = GPIO_PIN_13;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 207U;
+    GPIO_InitStruct.Pin = GPIO_PIN_14;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 208U;
+    GPIO_InitStruct.Pin = GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 209U;
 
     GPIO_InitStruct.Pin = GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
