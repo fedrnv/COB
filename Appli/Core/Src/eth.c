@@ -219,12 +219,18 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
     /* ETH1 clock enable */
     __HAL_RCC_ETH1_CLK_ENABLE();
+    COB_ETH_DebugStage = 13U;
     __HAL_RCC_ETH1MAC_CLK_ENABLE();
+    COB_ETH_DebugStage = 14U;
     __HAL_RCC_ETH1TX_CLK_ENABLE();
+    COB_ETH_DebugStage = 15U;
     __HAL_RCC_ETH1RX_CLK_ENABLE();
+    COB_ETH_DebugStage = 16U;
 
     __HAL_RCC_GPIOF_CLK_ENABLE();
+    COB_ETH_DebugStage = 17U;
     __HAL_RCC_GPIOG_CLK_ENABLE();
+    COB_ETH_DebugStage = 18U;
     /**ETH1 GPIO Configuration
     PF4     ------> ETH1_MDIO
     PF10     ------> ETH1_RMII_CRS_DV
@@ -245,6 +251,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 30U;
 
     GPIO_InitStruct.Pin = GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -252,9 +259,11 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH1;
     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+    COB_ETH_DebugStage = 31U;
 
     /* ETH1 interrupt Init */
     HAL_NVIC_SetPriority(ETH1_IRQn, 0, 0);
+    COB_ETH_DebugStage = 32U;
     HAL_NVIC_EnableIRQ(ETH1_IRQn);
   /* USER CODE BEGIN ETH1_MspInit 1 */
     COB_ETH_DebugStage = 40U;
