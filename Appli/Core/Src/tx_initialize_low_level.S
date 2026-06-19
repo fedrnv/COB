@@ -624,6 +624,12 @@ SysTick_Handler:
 // VOID TimerInterruptHandler (VOID)
 // {
     PUSH    {r0,lr}     // Save LR (and dummy r0 to maintain stack alignment)
+    LDR     r0, =COB_ThreadXTickReady
+    LDR     r0, [r0]
+    CBNZ    r0, 1f
+    BL      HAL_IncTick
+    B       2f
+1:
 #if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
     BL      _tx_execution_isr_enter             // Call the ISR enter function
 #endif
@@ -631,6 +637,7 @@ SysTick_Handler:
 #if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
     BL      _tx_execution_isr_exit              // Call the ISR exit function
 #endif
+2:
     POP     {r0,lr}
     BX      lr
 // }

@@ -44,6 +44,7 @@
 /* USER CODE BEGIN PV */
 volatile UINT COB_AZURE_Stage = 0U;
 volatile UINT COB_AZURE_LastStatus = 0U;
+extern volatile uint32_t COB_ThreadXTickReady;
 
 /* USER CODE END PV */
 
@@ -85,6 +86,7 @@ static TX_BYTE_POOL nx_app_byte_pool;
 VOID tx_application_define(VOID *first_unused_memory)
 {
   /* USER CODE BEGIN  tx_application_define_1*/
+  COB_ThreadXTickReady = 1U;
   COB_AZURE_Stage = 1U;
 
   /* USER CODE END  tx_application_define_1 */

@@ -56,6 +56,7 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0 ;
 /* USER CODE BEGIN PV */
 volatile uint32_t COB_MainStage = 0U;
 volatile uint32_t COB_RIFStage = 0U;
+volatile uint32_t COB_ThreadXTickReady = 0U;
 
 /* USER CODE END PV */
 
@@ -89,8 +90,6 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
   COB_MainStage = 10U;
-  HAL_SuspendTick();
-  COB_MainStage = 11U;
 
   /* USER CODE BEGIN Init */
 
