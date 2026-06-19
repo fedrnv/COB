@@ -61,6 +61,7 @@ volatile uint32_t COB_RIFStage = 0U;
 
 /* Private function prototypes -----------------------------------------------*/
 static void MPU_Config(void);
+static void SystemIsolation_ETH_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
 
@@ -105,7 +106,7 @@ int main(void)
   COB_MainStage = 30U;
   MX_GPDMA1_Init();
   COB_MainStage = 40U;
-  SystemIsolation_Config();
+  SystemIsolation_ETH_Config();
   COB_MainStage = 50U;
   MX_ETH1_Init();
   COB_MainStage = 60U;
@@ -146,6 +147,39 @@ int main(void)
     HAL_Delay(500);
   }
   /* USER CODE END 3 */
+}
+
+/**
+  * @brief Minimal isolation setup required before ETH1 init.
+  * @param None
+  * @retval None
+  */
+static void SystemIsolation_ETH_Config(void)
+{
+  RIMC_MasterConfig_t RIMC_master = {0};
+
+  COB_RIFStage = 1000U;
+  __HAL_RCC_RIFSC_CLK_ENABLE();
+
+  RIMC_master.MasterCID = RIF_CID_1;
+  RIMC_master.SecPriv = RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV;
+  HAL_RIF_RIMC_ConfigMasterAttributes(RIF_MASTER_INDEX_ETH1, &RIMC_master);
+  COB_RIFStage = 1001U;
+
+  HAL_RIF_RISC_SetSlaveSecureAttributes(RIF_RISC_PERIPH_INDEX_ETH1, RIF_ATTRIBUTE_SEC | RIF_ATTRIBUTE_PRIV);
+  COB_RIFStage = 1002U;
+
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_4, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_5, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_7, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_10, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_11, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_12, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_13, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_14, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOF, GPIO_PIN_15, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPIOG, GPIO_PIN_11, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  COB_RIFStage = 1010U;
 }
 
 /**
