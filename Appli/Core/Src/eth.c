@@ -206,14 +206,16 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
 
   /** Initializes the peripherals clock
   */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1 | RCC_PERIPHCLK_ETH1PHY;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ETH1;
     PeriphClkInitStruct.Eth1ClockSelection = RCC_ETH1CLKSOURCE_HCLK;
-    PeriphClkInitStruct.Eth1PhyInterfaceSelection = RCC_ETH1PHYIF_RMII;
 
+    COB_ETH_DebugStage = 11U;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
+      COB_ETH_DebugStage = 910U;
       Error_Handler();
     }
+    COB_ETH_DebugStage = 12U;
 
     /* ETH1 clock enable */
     __HAL_RCC_ETH1_CLK_ENABLE();
