@@ -54,6 +54,7 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0 ;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+volatile uint32_t COB_MainStage = 0U;
 
 /* USER CODE END PV */
 
@@ -77,12 +78,15 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  COB_MainStage = 1U;
   MPU_Config();
+  COB_MainStage = 2U;
 
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
+  COB_MainStage = 10U;
 
   /* USER CODE BEGIN Init */
 
@@ -94,24 +98,38 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  COB_MainStage = 20U;
   COB_StatusLED_Init();
   COB_StatusLED_EthernetStarting();
+  COB_MainStage = 30U;
   MX_GPDMA1_Init();
+  COB_MainStage = 40U;
   SystemIsolation_Config();
+  COB_MainStage = 50U;
   MX_ETH1_Init();
+  COB_MainStage = 60U;
   COB_ETH_UpdateDebugSnapshot();
+  COB_MainStage = 61U;
   MX_PSSI_Init();
+  COB_MainStage = 70U;
   MX_SPI5_Init();
+  COB_MainStage = 75U;
   MX_USART3_UART_Init();
+  COB_MainStage = 80U;
   MX_XSPI1_Init();
+  COB_MainStage = 85U;
   MX_XSPI2_Init();
+  COB_MainStage = 90U;
   MX_EXTMEM_MANAGER_Init();
+  COB_MainStage = 95U;
   /* USER CODE BEGIN 2 */
   COB_EthernetExchange_Init(NULL, NULL);
+  COB_MainStage = 100U;
 
   /* USER CODE END 2 */
 
   HAL_SuspendTick();
+  COB_MainStage = 110U;
   MX_ThreadX_Init();
 
   /* We should never get here as control is now taken by the scheduler */
