@@ -124,6 +124,47 @@ static uint32_t COB_ETH_IsValidPhyId(uint32_t id1, uint32_t id2)
   return 1U;
 }
 
+static void COB_ETH_GPIOF_AF11_InitPin(uint32_t pin, uint32_t position, uint32_t stage_base)
+{
+  uint32_t temp;
+
+  COB_ETH_DebugStage = stage_base + 1U;
+  temp = GPIOF->OSPEEDR;
+  COB_ETH_DebugStage = stage_base + 2U;
+  temp &= ~(GPIO_OSPEEDR_OSPEED0 << (position * GPIO_OSPEEDR_OSPEED1_Pos));
+  temp |= (GPIO_SPEED_FREQ_LOW << (position * GPIO_OSPEEDR_OSPEED1_Pos));
+  GPIOF->OSPEEDR = temp;
+
+  COB_ETH_DebugStage = stage_base + 3U;
+  temp = GPIOF->OTYPER;
+  COB_ETH_DebugStage = stage_base + 4U;
+  temp &= ~(GPIO_OTYPER_OT0 << position);
+  GPIOF->OTYPER = temp;
+
+  COB_ETH_DebugStage = stage_base + 5U;
+  temp = GPIOF->PUPDR;
+  COB_ETH_DebugStage = stage_base + 6U;
+  temp &= ~(GPIO_PUPDR_PUPD0 << (position * GPIO_PUPDR_PUPD1_Pos));
+  GPIOF->PUPDR = temp;
+
+  COB_ETH_DebugStage = stage_base + 7U;
+  temp = GPIOF->AFR[position >> 3U];
+  COB_ETH_DebugStage = stage_base + 8U;
+  temp &= ~(0xFU << ((position & 0x07U) * GPIO_AFRL_AFSEL1_Pos));
+  temp |= (GPIO_AF11_ETH1 << ((position & 0x07U) * GPIO_AFRL_AFSEL1_Pos));
+  GPIOF->AFR[position >> 3U] = temp;
+
+  COB_ETH_DebugStage = stage_base + 9U;
+  temp = GPIOF->MODER;
+  COB_ETH_DebugStage = stage_base + 10U;
+  temp &= ~(GPIO_MODER_MODE0 << (position * GPIO_MODER_MODE1_Pos));
+  temp |= ((GPIO_MODE_AF_PP & GPIO_MODE) << (position * GPIO_MODER_MODE1_Pos));
+  GPIOF->MODER = temp;
+
+  COB_ETH_DebugStage = stage_base + 11U;
+  (void)pin;
+}
+
 /* USER CODE END 0 */
 
 ETH_HandleTypeDef heth1;
@@ -261,8 +302,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
     COB_ETH_DebugStage = 203U;
     COB_ETH_DebugStage = 223U;
-    GPIO_InitStruct.Pin = GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    COB_ETH_GPIOF_AF11_InitPin(GPIO_PIN_11, 11U, 300U);
     COB_ETH_DebugStage = 205U;
     COB_ETH_DebugStage = 224U;
     GPIO_InitStruct.Pin = GPIO_PIN_12;
