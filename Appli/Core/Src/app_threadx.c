@@ -162,6 +162,16 @@ static uint32_t COB_RunFlashSelfTest(void)
   EXTMEM_StatusTypeDef status;
 
   COB_FlashTestStage = 1U;
+  status = EXTMEM_Init(EXTMEMORY_2, HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_XSPI2));
+  COB_FlashTestLastStatus = (int32_t)status;
+  if (status != EXTMEM_OK)
+  {
+    COB_FlashTestStage = 10U;
+    printf("FLASH TEST FAIL: init status=%ld\r\n", (long)status);
+    return 0U;
+  }
+
+  COB_FlashTestStage = 2U;
   status = EXTMEM_GetInfo(EXTMEMORY_2, &info);
   COB_FlashTestLastStatus = (int32_t)status;
   COB_FlashInfoSizePower = info.FlashSize;
@@ -172,23 +182,35 @@ static uint32_t COB_RunFlashSelfTest(void)
   COB_FlashInfoErase4SizePower = info.EraseType4Size;
   if (status != EXTMEM_OK)
   {
-    COB_FlashTestStage = 10U;
+    COB_FlashTestStage = 11U;
     printf("FLASH TEST FAIL: get info status=%ld flash_size_pow=%u\r\n",
            (long)status, info.FlashSize);
     return 0U;
   }
-  if (info.FlashSize >= 31U)
+  if ((info.FlashSize == 0U) || (info.FlashSize >= 31U))
   {
-    COB_FlashTestStage = 11U;
+    COB_FlashTestStage = 12U;
     printf("FLASH TEST FAIL: invalid flash_size_pow=%u\r\n", info.FlashSize);
     return 0U;
   }
 
   flash_size = 1UL << info.FlashSize;
-  erase_size = (info.EraseType1Size != 0U) ? (1UL << info.EraseType1Size) : 4096U;
+  erase_size = info.EraseType1Size;
+  if ((erase_size == 0U) || ((info.EraseType2Size != 0U) && (info.EraseType2Size < erase_size)))
+  {
+    erase_size = info.EraseType2Size;
+  }
+  if ((erase_size == 0U) || ((info.EraseType3Size != 0U) && (info.EraseType3Size < erase_size)))
+  {
+    erase_size = info.EraseType3Size;
+  }
+  if ((erase_size == 0U) || ((info.EraseType4Size != 0U) && (info.EraseType4Size < erase_size)))
+  {
+    erase_size = info.EraseType4Size;
+  }
   if ((erase_size == 0U) || (erase_size > flash_size))
   {
-    COB_FlashTestStage = 12U;
+    COB_FlashTestStage = 13U;
     printf("FLASH TEST FAIL: invalid erase_size=%lu flash_size=%lu\r\n",
            (unsigned long)erase_size, (unsigned long)flash_size);
     return 0U;
@@ -205,7 +227,7 @@ static uint32_t COB_RunFlashSelfTest(void)
     return 0U;
   }
 
-  COB_FlashTestStage = 2U;
+  COB_FlashTestStage = 20U;
   status = EXTMEM_EraseSector(EXTMEMORY_2, COB_FlashTestAddress, erase_size);
   COB_FlashTestLastStatus = (int32_t)status;
   if (status != EXTMEM_OK)
@@ -217,7 +239,7 @@ static uint32_t COB_RunFlashSelfTest(void)
     return 0U;
   }
 
-  COB_FlashTestStage = 3U;
+  COB_FlashTestStage = 30U;
   status = EXTMEM_Write(EXTMEMORY_2, COB_FlashTestAddress, write_buffer, sizeof(write_buffer));
   COB_FlashTestLastStatus = (int32_t)status;
   if (status != EXTMEM_OK)
@@ -228,7 +250,7 @@ static uint32_t COB_RunFlashSelfTest(void)
     return 0U;
   }
 
-  COB_FlashTestStage = 4U;
+  COB_FlashTestStage = 40U;
   status = EXTMEM_Read(EXTMEMORY_2, COB_FlashTestAddress, read_buffer, sizeof(read_buffer));
   COB_FlashTestLastStatus = (int32_t)status;
   if (status != EXTMEM_OK)
@@ -239,7 +261,7 @@ static uint32_t COB_RunFlashSelfTest(void)
     return 0U;
   }
 
-  COB_FlashTestStage = 5U;
+  COB_FlashTestStage = 50U;
   if (memcmp(write_buffer, read_buffer, sizeof(write_buffer)) != 0)
   {
     printf("FLASH TEST FAIL: compare addr=0x%08lX wrote=\"%s\" read=\"%s\"\r\n",
