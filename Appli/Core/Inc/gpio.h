@@ -44,6 +44,9 @@ void COB_StatusLED_EthernetStarting(void);
 void COB_StatusLED_EthernetReady(void);
 void COB_StatusLED_EthernetError(void);
 void COB_StatusLED_BlueToggle(void);
+void COB_StatusLED_RedToggle(void);
+void COB_StatusLED_TestPassToggle(void);
+void COB_StatusLED_TestFailToggle(void);
 
 /* USER CODE END Prototypes */
 
@@ -51,4 +54,3 @@ void COB_StatusLED_BlueToggle(void);
 }
 #endif
 #endif /*__ GPIO_H__ */
-

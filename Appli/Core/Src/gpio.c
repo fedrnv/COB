@@ -110,6 +110,25 @@ void COB_StatusLED_BlueToggle(void)
   HAL_GPIO_TogglePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN);
 }
 
+void COB_StatusLED_RedToggle(void)
+{
+  HAL_GPIO_TogglePin(COB_LED_RED_PORT, COB_LED_RED_PIN);
+}
+
+void COB_StatusLED_TestPassToggle(void)
+{
+  HAL_GPIO_WritePin(COB_LED_RED_PORT, COB_LED_RED_PIN, COB_LED_OFF);
+  HAL_GPIO_WritePin(COB_LED_GREEN_PORT, COB_LED_GREEN_PIN, COB_LED_OFF);
+  COB_StatusLED_BlueToggle();
+}
+
+void COB_StatusLED_TestFailToggle(void)
+{
+  HAL_GPIO_WritePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN, COB_LED_OFF);
+  HAL_GPIO_WritePin(COB_LED_GREEN_PORT, COB_LED_GREEN_PIN, COB_LED_OFF);
+  COB_StatusLED_RedToggle();
+}
+
 static void COB_StatusLED_Write(GPIO_PinState blue, GPIO_PinState red, GPIO_PinState green)
 {
   HAL_GPIO_WritePin(COB_LED_BLUE_PORT, COB_LED_BLUE_PIN, blue);

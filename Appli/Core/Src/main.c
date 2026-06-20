@@ -32,6 +32,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "cob_ethernet_exchange.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -57,6 +58,11 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0 ;
 volatile uint32_t COB_MainStage = 0U;
 volatile uint32_t COB_RIFStage = 0U;
 volatile uint32_t COB_ThreadXTickReady = 0U;
+volatile uint32_t COB_FlashTestStage = 0U;
+volatile uint32_t COB_FlashTestPassed = 0U;
+volatile uint32_t COB_FlashTestValue = 0U;
+volatile uint32_t COB_FlashTestAddress = 0U;
+volatile int32_t COB_FlashTestLastStatus = 0;
 
 /* USER CODE END PV */
 
@@ -70,6 +76,17 @@ static void SystemIsolation_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int __io_putchar(int ch)
+{
+  uint8_t c = (uint8_t)ch;
+
+  if (HAL_UART_Transmit(&huart3, &c, 1U, HAL_MAX_DELAY) != HAL_OK)
+  {
+    return EOF;
+  }
+
+  return ch;
+}
 
 /* USER CODE END 0 */
 
