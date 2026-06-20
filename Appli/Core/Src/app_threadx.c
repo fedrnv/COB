@@ -498,7 +498,21 @@ static uint32_t COB_RunPsramSelfTest(void)
 
   COB_PsramTestStage = 1U;
   COB_PsramMapStatus = (int32_t)EXTMEM_MemoryMappedMode(EXTMEMORY_1, EXTMEM_DISABLE);
-  COB_PsramWrapStatus = (int32_t)HAL_OK;
+  COB_PsramWrapStatus = (int32_t)SAL_XSPI_ConfigureWrappMode(&extmem_list_config[EXTMEMORY_1].PsramObject.psram_private.SALObject,
+                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.WrapRead_command,
+                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.Write_DummyCycle);
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
+  if (COB_PsramWrapStatus != (int32_t)HAL_OK)
+  {
+    COB_PsramTestStage = 10U;
+    COB_PsramTestLastStatus = COB_PsramWrapStatus;
+    printf("PSRAM TEST FAIL: wrap status=%ld xspi_error=0x%08lX state=%lu\r\n",
+           (long)COB_PsramWrapStatus,
+           (unsigned long)COB_PsramXspi1ErrorCode,
+           (unsigned long)COB_PsramXspi1State);
+    return 0U;
+  }
 
   COB_PsramTestStage = 3U;
   COB_PsramEnableMapStatus = (int32_t)SAL_XSPI_EnableMapMode(&extmem_list_config[EXTMEMORY_1].PsramObject.psram_private.SALObject,

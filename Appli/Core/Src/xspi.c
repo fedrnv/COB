@@ -36,7 +36,6 @@ void MX_XSPI1_Init(void)
   /* USER CODE END XSPI1_Init 0 */
 
   XSPIM_CfgTypeDef sXspiManagerCfg = {0};
-  XSPI_HyperbusCfgTypeDef sHyperBusCfg = {0};
 
   /* USER CODE BEGIN XSPI1_Init 1 */
 
@@ -44,7 +43,7 @@ void MX_XSPI1_Init(void)
   hxspi1.Instance = XSPI1;
   hxspi1.Init.FifoThresholdByte = 1;
   hxspi1.Init.MemoryMode = HAL_XSPI_SINGLE_MEM;
-  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_HYPERBUS;
+  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_APMEM;
   hxspi1.Init.MemorySize = HAL_XSPI_SIZE_256MB;
   hxspi1.Init.ChipSelectHighTimeCycle = 1;
   hxspi1.Init.FreeRunningClock = HAL_XSPI_FREERUNCLK_DISABLE;
@@ -65,14 +64,6 @@ void MX_XSPI1_Init(void)
   sXspiManagerCfg.IOPort = HAL_XSPIM_IOPORT_1;
   sXspiManagerCfg.Req2AckTime = 1;
   if (HAL_XSPIM_Config(&hxspi1, &sXspiManagerCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sHyperBusCfg.RWRecoveryTimeCycle = 0;
-  sHyperBusCfg.AccessTimeCycle = 0;
-  sHyperBusCfg.WriteZeroLatency = HAL_XSPI_NO_LATENCY_ON_WRITE;
-  sHyperBusCfg.LatencyMode = HAL_XSPI_VARIABLE_LATENCY;
-  if (HAL_XSPI_HyperbusCfg(&hxspi1, &sHyperBusCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
   }
