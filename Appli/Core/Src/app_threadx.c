@@ -43,6 +43,7 @@
 #define COB_FLASH_THREAD_STACK_SIZE 2048U
 #define COB_LED_THREAD_PRIORITY   15U
 #define COB_FLASH_THREAD_PRIORITY 10U
+#define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
 
 /* USER CODE END PD */
 
@@ -364,6 +365,11 @@ static uint32_t COB_RunFlashSelfTest(void)
   }
 
   flash_size = 1UL << info.FlashSize;
+  if (flash_size > COB_FLASH_TEST_CAPACITY_BYTES)
+  {
+    flash_size = COB_FLASH_TEST_CAPACITY_BYTES;
+  }
+
   erase_size = info.EraseType1Size;
   if ((erase_size == 0U) || ((info.EraseType2Size != 0U) && (info.EraseType2Size < erase_size)))
   {
