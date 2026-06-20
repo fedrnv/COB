@@ -26,6 +26,7 @@
 #include "gpio.h"
 #include "extmem_manager.h"
 #include "stm32_extmem.h"
+#include "stm32_sfdp_driver_api.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -61,6 +62,7 @@ extern volatile uint32_t COB_FlashTestPassed;
 extern volatile uint32_t COB_FlashTestValue;
 extern volatile uint32_t COB_FlashTestAddress;
 extern volatile int32_t COB_FlashTestLastStatus;
+extern volatile int32_t COB_FlashDriverStatus;
 extern volatile uint32_t COB_FlashInfoSizePower;
 extern volatile uint32_t COB_FlashInfoPageSize;
 extern volatile uint32_t COB_FlashInfoErase1SizePower;
@@ -160,14 +162,19 @@ static uint32_t COB_RunFlashSelfTest(void)
   uint32_t erase_size;
   int length;
   EXTMEM_StatusTypeDef status;
+  EXTMEM_DRIVER_NOR_SFDP_StatusTypeDef driver_status;
 
   COB_FlashTestStage = 1U;
-  status = EXTMEM_Init(EXTMEMORY_2, HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_XSPI2));
-  COB_FlashTestLastStatus = (int32_t)status;
-  if (status != EXTMEM_OK)
+  driver_status = EXTMEM_DRIVER_NOR_SFDP_Init(extmem_list_config[EXTMEMORY_2].Handle,
+                                              extmem_list_config[EXTMEMORY_2].ConfigType,
+                                              HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_XSPI2),
+                                              &extmem_list_config[EXTMEMORY_2].NorSfdpObject);
+  COB_FlashDriverStatus = (int32_t)driver_status;
+  COB_FlashTestLastStatus = (driver_status == EXTMEM_DRIVER_NOR_SFDP_OK) ? 0 : EXTMEM_ERROR_DRIVER;
+  if (driver_status != EXTMEM_DRIVER_NOR_SFDP_OK)
   {
     COB_FlashTestStage = 10U;
-    printf("FLASH TEST FAIL: init status=%ld\r\n", (long)status);
+    printf("FLASH TEST FAIL: NOR SFDP init driver_status=%ld\r\n", (long)driver_status);
     return 0U;
   }
 

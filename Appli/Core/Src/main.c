@@ -63,6 +63,7 @@ volatile uint32_t COB_FlashTestPassed = 0U;
 volatile uint32_t COB_FlashTestValue = 0U;
 volatile uint32_t COB_FlashTestAddress = 0U;
 volatile int32_t COB_FlashTestLastStatus = 0;
+volatile int32_t COB_FlashDriverStatus = 0;
 volatile uint32_t COB_FlashInfoSizePower = 0U;
 volatile uint32_t COB_FlashInfoPageSize = 0U;
 volatile uint32_t COB_FlashInfoErase1SizePower = 0U;
