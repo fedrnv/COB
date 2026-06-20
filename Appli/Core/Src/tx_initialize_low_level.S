@@ -630,6 +630,7 @@ SysTick_Handler:
     BL      HAL_IncTick
     B       2f
 1:
+    BL      HAL_IncTick
 #if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
     BL      _tx_execution_isr_enter             // Call the ISR enter function
 #endif

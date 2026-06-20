@@ -61,6 +61,12 @@ extern volatile uint32_t COB_FlashTestPassed;
 extern volatile uint32_t COB_FlashTestValue;
 extern volatile uint32_t COB_FlashTestAddress;
 extern volatile int32_t COB_FlashTestLastStatus;
+extern volatile uint32_t COB_FlashInfoSizePower;
+extern volatile uint32_t COB_FlashInfoPageSize;
+extern volatile uint32_t COB_FlashInfoErase1SizePower;
+extern volatile uint32_t COB_FlashInfoErase2SizePower;
+extern volatile uint32_t COB_FlashInfoErase3SizePower;
+extern volatile uint32_t COB_FlashInfoErase4SizePower;
 
 /* USER CODE END PV */
 
@@ -158,10 +164,23 @@ static uint32_t COB_RunFlashSelfTest(void)
   COB_FlashTestStage = 1U;
   status = EXTMEM_GetInfo(EXTMEMORY_2, &info);
   COB_FlashTestLastStatus = (int32_t)status;
-  if ((status != EXTMEM_OK) || (info.FlashSize >= 31U))
+  COB_FlashInfoSizePower = info.FlashSize;
+  COB_FlashInfoPageSize = info.PageSize;
+  COB_FlashInfoErase1SizePower = info.EraseType1Size;
+  COB_FlashInfoErase2SizePower = info.EraseType2Size;
+  COB_FlashInfoErase3SizePower = info.EraseType3Size;
+  COB_FlashInfoErase4SizePower = info.EraseType4Size;
+  if (status != EXTMEM_OK)
   {
+    COB_FlashTestStage = 10U;
     printf("FLASH TEST FAIL: get info status=%ld flash_size_pow=%u\r\n",
            (long)status, info.FlashSize);
+    return 0U;
+  }
+  if (info.FlashSize >= 31U)
+  {
+    COB_FlashTestStage = 11U;
+    printf("FLASH TEST FAIL: invalid flash_size_pow=%u\r\n", info.FlashSize);
     return 0U;
   }
 
@@ -169,6 +188,7 @@ static uint32_t COB_RunFlashSelfTest(void)
   erase_size = (info.EraseType1Size != 0U) ? (1UL << info.EraseType1Size) : 4096U;
   if ((erase_size == 0U) || (erase_size > flash_size))
   {
+    COB_FlashTestStage = 12U;
     printf("FLASH TEST FAIL: invalid erase_size=%lu flash_size=%lu\r\n",
            (unsigned long)erase_size, (unsigned long)flash_size);
     return 0U;
