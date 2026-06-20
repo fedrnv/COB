@@ -78,6 +78,14 @@ volatile int32_t COB_FlashJedecNcs2CommandStatus = 0;
 volatile int32_t COB_FlashJedecNcs2ReceiveStatus = 0;
 volatile uint32_t COB_FlashJedecNcs2Word0 = 0U;
 volatile uint32_t COB_FlashJedecNcs2Word1 = 0U;
+volatile int32_t COB_FlashSfdpNcs1CommandStatus = 0;
+volatile int32_t COB_FlashSfdpNcs1ReceiveStatus = 0;
+volatile uint32_t COB_FlashSfdpNcs1Word0 = 0U;
+volatile int32_t COB_FlashSfdpNcs2CommandStatus = 0;
+volatile int32_t COB_FlashSfdpNcs2ReceiveStatus = 0;
+volatile uint32_t COB_FlashSfdpNcs2Word0 = 0U;
+volatile uint32_t COB_FlashXspi2ErrorCode = 0U;
+volatile uint32_t COB_FlashXspi2State = 0U;
 
 /* USER CODE END PV */
 

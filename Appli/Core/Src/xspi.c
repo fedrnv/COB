@@ -109,12 +109,12 @@ void MX_XSPI2_Init(void)
   hxspi2.Init.ChipSelectBoundary = HAL_XSPI_BONDARYOF_NONE;
   hxspi2.Init.MaxTran = 0;
   hxspi2.Init.Refresh = 0;
-  hxspi2.Init.MemorySelect = HAL_XSPI_CSSEL_NCS2;
+  hxspi2.Init.MemorySelect = HAL_XSPI_CSSEL_NCS1;
   if (HAL_XSPI_Init(&hxspi2) != HAL_OK)
   {
     Error_Handler();
   }
-  sXspiManagerCfg.nCSOverride = HAL_XSPI_CSSEL_OVR_NCS2;
+  sXspiManagerCfg.nCSOverride = HAL_XSPI_CSSEL_OVR_NCS1;
   sXspiManagerCfg.IOPort = HAL_XSPIM_IOPORT_2;
   sXspiManagerCfg.Req2AckTime = 1;
   if (HAL_XSPIM_Config(&hxspi2, &sXspiManagerCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
@@ -220,14 +220,14 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* xspiHandle)
     PN0     ------> XSPIM_P2_DQS0
     PN3     ------> XSPIM_P2_IO1
     PN5     ------> XSPIM_P2_IO3
-    PN12     ------> XSPIM_P2_NCS2
+    PN1     ------> XSPIM_P2_NCS1
     PN9     ------> XSPIM_P2_IO5
     PN2     ------> XSPIM_P2_IO0
     PN10     ------> XSPIM_P2_IO6
     PN11     ------> XSPIM_P2_IO7
     */
     GPIO_InitStruct.Pin = OCTOSPI_IO2_Pin|OCTOSPI_CLK_Pin|OCTOSPI_IO4_Pin|OCTOSPI_DQS_Pin
-                          |OCTOSPI_IO1_Pin|OCTOSPI_IO3_Pin|GPIO_PIN_12|OCTOSPI_IO5_Pin
+                          |OCTOSPI_IO1_Pin|OCTOSPI_IO3_Pin|OCTOSPI_NCS_Pin|OCTOSPI_IO5_Pin
                           |OCTOSPI_IO0_Pin|OCTOSPI_IO6_Pin|OCTOSPI_IO7_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -297,14 +297,14 @@ void HAL_XSPI_MspDeInit(XSPI_HandleTypeDef* xspiHandle)
     PN0     ------> XSPIM_P2_DQS0
     PN3     ------> XSPIM_P2_IO1
     PN5     ------> XSPIM_P2_IO3
-    PN12     ------> XSPIM_P2_NCS2
+    PN1     ------> XSPIM_P2_NCS1
     PN9     ------> XSPIM_P2_IO5
     PN2     ------> XSPIM_P2_IO0
     PN10     ------> XSPIM_P2_IO6
     PN11     ------> XSPIM_P2_IO7
     */
     HAL_GPIO_DeInit(GPION, OCTOSPI_IO2_Pin|OCTOSPI_CLK_Pin|OCTOSPI_IO4_Pin|OCTOSPI_DQS_Pin
-                          |OCTOSPI_IO1_Pin|OCTOSPI_IO3_Pin|GPIO_PIN_12|OCTOSPI_IO5_Pin
+                          |OCTOSPI_IO1_Pin|OCTOSPI_IO3_Pin|OCTOSPI_NCS_Pin|OCTOSPI_IO5_Pin
                           |OCTOSPI_IO0_Pin|OCTOSPI_IO6_Pin|OCTOSPI_IO7_Pin);
 
   /* USER CODE BEGIN XSPI2_MspDeInit 1 */
