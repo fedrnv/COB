@@ -41,9 +41,12 @@
 /* USER CODE BEGIN PD */
 #define COB_LED_THREAD_STACK_SIZE 1024U
 #define COB_FLASH_THREAD_STACK_SIZE 2048U
+#define COB_PSRAM_THREAD_STACK_SIZE 1024U
 #define COB_LED_THREAD_PRIORITY   15U
 #define COB_FLASH_THREAD_PRIORITY 10U
+#define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
+#define COB_PSRAM_TEST_WORD_COUNT 1024U
 
 /* USER CODE END PD */
 
@@ -56,8 +59,10 @@
 /* USER CODE BEGIN PV */
 static TX_THREAD COB_LedThread;
 static TX_THREAD COB_FlashThread;
+static TX_THREAD COB_PsramThread;
 static ULONG COB_LedThreadStack[COB_LED_THREAD_STACK_SIZE / sizeof(ULONG)];
 static ULONG COB_FlashThreadStack[COB_FLASH_THREAD_STACK_SIZE / sizeof(ULONG)];
+static ULONG COB_PsramThreadStack[COB_PSRAM_THREAD_STACK_SIZE / sizeof(ULONG)];
 extern volatile uint32_t COB_FlashTestStage;
 extern volatile uint32_t COB_FlashTestPassed;
 extern volatile uint32_t COB_FlashTestValue;
@@ -86,6 +91,15 @@ extern volatile int32_t COB_FlashSfdpNcs2ReceiveStatus;
 extern volatile uint32_t COB_FlashSfdpNcs2Word0;
 extern volatile uint32_t COB_FlashXspi2ErrorCode;
 extern volatile uint32_t COB_FlashXspi2State;
+extern volatile uint32_t COB_PsramTestStage;
+extern volatile uint32_t COB_PsramTestPassed;
+extern volatile uint32_t COB_PsramTestBaseAddress;
+extern volatile uint32_t COB_PsramTestValue;
+extern volatile uint32_t COB_PsramTestErrors;
+extern volatile uint32_t COB_PsramTestFirstBadIndex;
+extern volatile uint32_t COB_PsramTestExpected;
+extern volatile uint32_t COB_PsramTestActual;
+extern volatile int32_t COB_PsramTestLastStatus;
 
 /* USER CODE END PV */
 
@@ -93,11 +107,13 @@ extern volatile uint32_t COB_FlashXspi2State;
 /* USER CODE BEGIN PFP */
 static void COB_LedThreadEntry(ULONG thread_input);
 static void COB_FlashThreadEntry(ULONG thread_input);
+static void COB_PsramThreadEntry(ULONG thread_input);
 static void COB_ProbeFlashJedecId(uint32_t chip_select);
 static HAL_StatusTypeDef COB_XSPI_SendSimpleCommand(uint32_t chip_select, uint32_t instruction);
 static void COB_ProbeFlashSfdpSignature(uint32_t chip_select);
 static uint32_t COB_GenerateTestValue(void);
 static uint32_t COB_RunFlashSelfTest(void);
+static uint32_t COB_RunPsramSelfTest(void);
 
 /* USER CODE END PFP */
 
@@ -135,6 +151,19 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                            sizeof(COB_FlashThreadStack),
                            COB_FLASH_THREAD_PRIORITY,
                            COB_FLASH_THREAD_PRIORITY,
+                           TX_NO_TIME_SLICE,
+                           TX_AUTO_START);
+  }
+  if (ret == TX_SUCCESS)
+  {
+    ret = tx_thread_create(&COB_PsramThread,
+                           "COB PSRAM Test",
+                           COB_PsramThreadEntry,
+                           0U,
+                           COB_PsramThreadStack,
+                           sizeof(COB_PsramThreadStack),
+                           COB_PSRAM_THREAD_PRIORITY,
+                           COB_PSRAM_THREAD_PRIORITY,
                            TX_NO_TIME_SLICE,
                            TX_AUTO_START);
   }
@@ -454,11 +483,102 @@ static uint32_t COB_RunFlashSelfTest(void)
   return 1U;
 }
 
+static uint32_t COB_RunPsramSelfTest(void)
+{
+  volatile uint32_t *psram;
+  EXTMEM_StatusTypeDef status;
+  uint32_t base_address = 0U;
+  uint32_t errors = 0U;
+
+  COB_PsramTestStage = 1U;
+  status = EXTMEM_MemoryMappedMode(EXTMEMORY_1, EXTMEM_ENABLE);
+  COB_PsramTestLastStatus = (int32_t)status;
+  if (status != EXTMEM_OK)
+  {
+    COB_PsramTestStage = 10U;
+    printf("PSRAM TEST FAIL: memory mapped enable status=%ld\r\n", (long)status);
+    return 0U;
+  }
+
+  COB_PsramTestStage = 2U;
+  status = EXTMEM_GetMapAddress(EXTMEMORY_1, &base_address);
+  COB_PsramTestLastStatus = (int32_t)status;
+  COB_PsramTestBaseAddress = base_address;
+  if ((status != EXTMEM_OK) || (base_address == 0U))
+  {
+    COB_PsramTestStage = 11U;
+    printf("PSRAM TEST FAIL: get map address status=%ld base=0x%08lX\r\n",
+           (long)status,
+           (unsigned long)base_address);
+    return 0U;
+  }
+
+  psram = (volatile uint32_t *)base_address;
+  COB_PsramTestValue = 0x5A5AA5A5UL ^ HAL_GetTick();
+
+  COB_PsramTestStage = 20U;
+  for (uint32_t i = 0U; i < COB_PSRAM_TEST_WORD_COUNT; i++)
+  {
+    psram[i] = 0xA5A50000UL ^ i ^ COB_PsramTestValue;
+  }
+
+  __DSB();
+
+  COB_PsramTestStage = 30U;
+  for (uint32_t i = 0U; i < COB_PSRAM_TEST_WORD_COUNT; i++)
+  {
+    uint32_t expected = 0xA5A50000UL ^ i ^ COB_PsramTestValue;
+    uint32_t actual = psram[i];
+
+    if (actual != expected)
+    {
+      if (errors == 0U)
+      {
+        COB_PsramTestFirstBadIndex = i;
+        COB_PsramTestExpected = expected;
+        COB_PsramTestActual = actual;
+      }
+      errors++;
+    }
+  }
+
+  COB_PsramTestErrors = errors;
+  if (errors != 0U)
+  {
+    COB_PsramTestStage = 40U;
+    printf("PSRAM TEST FAIL: errors=%lu first=%lu expected=0x%08lX actual=0x%08lX base=0x%08lX\r\n",
+           (unsigned long)errors,
+           (unsigned long)COB_PsramTestFirstBadIndex,
+           (unsigned long)COB_PsramTestExpected,
+           (unsigned long)COB_PsramTestActual,
+           (unsigned long)COB_PsramTestBaseAddress);
+    return 0U;
+  }
+
+  COB_PsramTestStage = 100U;
+  printf("PSRAM TEST OK: base=0x%08lX words=%lu\r\n",
+         (unsigned long)COB_PsramTestBaseAddress,
+         (unsigned long)COB_PSRAM_TEST_WORD_COUNT);
+  return 1U;
+}
+
 static void COB_FlashThreadEntry(ULONG thread_input)
 {
   (void)thread_input;
 
   COB_FlashTestPassed = COB_RunFlashSelfTest();
+
+  while (1)
+  {
+    tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
+  }
+}
+
+static void COB_PsramThreadEntry(ULONG thread_input)
+{
+  (void)thread_input;
+
+  COB_PsramTestPassed = COB_RunPsramSelfTest();
 
   while (1)
   {
@@ -472,7 +592,7 @@ static void COB_LedThreadEntry(ULONG thread_input)
 
   while (1)
   {
-    if (COB_FlashTestPassed != 0U)
+    if ((COB_FlashTestPassed != 0U) && (COB_PsramTestPassed != 0U))
     {
       COB_StatusLED_TestPassToggle();
     }

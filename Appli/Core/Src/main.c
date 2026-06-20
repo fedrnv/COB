@@ -86,6 +86,15 @@ volatile int32_t COB_FlashSfdpNcs2ReceiveStatus = 0;
 volatile uint32_t COB_FlashSfdpNcs2Word0 = 0U;
 volatile uint32_t COB_FlashXspi2ErrorCode = 0U;
 volatile uint32_t COB_FlashXspi2State = 0U;
+volatile uint32_t COB_PsramTestStage = 0U;
+volatile uint32_t COB_PsramTestPassed = 0U;
+volatile uint32_t COB_PsramTestBaseAddress = 0U;
+volatile uint32_t COB_PsramTestValue = 0U;
+volatile uint32_t COB_PsramTestErrors = 0U;
+volatile uint32_t COB_PsramTestFirstBadIndex = 0U;
+volatile uint32_t COB_PsramTestExpected = 0U;
+volatile uint32_t COB_PsramTestActual = 0U;
+volatile int32_t COB_PsramTestLastStatus = 0;
 
 /* USER CODE END PV */
 
