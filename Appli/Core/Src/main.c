@@ -222,6 +222,7 @@ static void SystemIsolation_ETH_Config(void)
   HAL_GPIO_ConfigPinAttributes(GPION, GPIO_PIN_9, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPION, GPIO_PIN_10, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
   HAL_GPIO_ConfigPinAttributes(GPION, GPIO_PIN_11, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
+  HAL_GPIO_ConfigPinAttributes(GPION, GPIO_PIN_12, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
   COB_RIFStage = 1020U;
 
   HAL_GPIO_ConfigPinAttributes(GPIOP, GPIO_PIN_0, GPIO_PIN_SEC | GPIO_PIN_NPRIV);
