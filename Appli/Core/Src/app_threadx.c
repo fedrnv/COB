@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "gpio.h"
+#include "extmem_manager.h"
 #include "stm32_extmem.h"
 #include <stdio.h>
 #include <string.h>
