@@ -69,6 +69,14 @@ extern volatile uint32_t COB_FlashInfoErase1SizePower;
 extern volatile uint32_t COB_FlashInfoErase2SizePower;
 extern volatile uint32_t COB_FlashInfoErase3SizePower;
 extern volatile uint32_t COB_FlashInfoErase4SizePower;
+extern volatile int32_t COB_FlashJedecNcs1CommandStatus;
+extern volatile int32_t COB_FlashJedecNcs1ReceiveStatus;
+extern volatile uint32_t COB_FlashJedecNcs1Word0;
+extern volatile uint32_t COB_FlashJedecNcs1Word1;
+extern volatile int32_t COB_FlashJedecNcs2CommandStatus;
+extern volatile int32_t COB_FlashJedecNcs2ReceiveStatus;
+extern volatile uint32_t COB_FlashJedecNcs2Word0;
+extern volatile uint32_t COB_FlashJedecNcs2Word1;
 
 /* USER CODE END PV */
 
@@ -76,6 +84,7 @@ extern volatile uint32_t COB_FlashInfoErase4SizePower;
 /* USER CODE BEGIN PFP */
 static void COB_LedThreadEntry(ULONG thread_input);
 static void COB_FlashThreadEntry(ULONG thread_input);
+static void COB_ProbeFlashJedecId(uint32_t chip_select);
 static uint32_t COB_GenerateTestValue(void);
 static uint32_t COB_RunFlashSelfTest(void);
 
@@ -142,6 +151,54 @@ void MX_ThreadX_Init(void)
 }
 
 /* USER CODE BEGIN 1 */
+static void COB_ProbeFlashJedecId(uint32_t chip_select)
+{
+  XSPI_RegularCmdTypeDef command = {0};
+  uint8_t id[8] = {0};
+  HAL_StatusTypeDef command_status;
+  HAL_StatusTypeDef receive_status = HAL_ERROR;
+
+  (void)HAL_XSPI_Abort(&hxspi2);
+  MODIFY_REG(hxspi2.Instance->CR, XSPI_CR_CSSEL, chip_select);
+
+  command.OperationType = HAL_XSPI_OPTYPE_COMMON_CFG;
+  command.IOSelect = HAL_XSPI_SELECT_IO_7_0;
+  command.Instruction = 0x9FU;
+  command.InstructionMode = HAL_XSPI_INSTRUCTION_1_LINE;
+  command.InstructionWidth = HAL_XSPI_INSTRUCTION_8_BITS;
+  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_DISABLE;
+  command.AddressMode = HAL_XSPI_ADDRESS_NONE;
+  command.AlternateBytesMode = HAL_XSPI_ALT_BYTES_NONE;
+  command.DataMode = HAL_XSPI_DATA_1_LINE;
+  command.DataLength = 6U;
+  command.DataDTRMode = HAL_XSPI_DATA_DTR_DISABLE;
+  command.DummyCycles = 0U;
+  command.DQSMode = HAL_XSPI_DQS_DISABLE;
+
+  command_status = HAL_XSPI_Command(&hxspi2, &command, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+  if (command_status == HAL_OK)
+  {
+    receive_status = HAL_XSPI_Receive(&hxspi2, id, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+  }
+
+  if (chip_select == HAL_XSPI_CSSEL_NCS1)
+  {
+    COB_FlashJedecNcs1CommandStatus = (int32_t)command_status;
+    COB_FlashJedecNcs1ReceiveStatus = (int32_t)receive_status;
+    COB_FlashJedecNcs1Word0 = ((uint32_t)id[0] << 24) | ((uint32_t)id[1] << 16) |
+                              ((uint32_t)id[2] << 8) | (uint32_t)id[3];
+    COB_FlashJedecNcs1Word1 = ((uint32_t)id[4] << 8) | (uint32_t)id[5];
+  }
+  else
+  {
+    COB_FlashJedecNcs2CommandStatus = (int32_t)command_status;
+    COB_FlashJedecNcs2ReceiveStatus = (int32_t)receive_status;
+    COB_FlashJedecNcs2Word0 = ((uint32_t)id[0] << 24) | ((uint32_t)id[1] << 16) |
+                              ((uint32_t)id[2] << 8) | (uint32_t)id[3];
+    COB_FlashJedecNcs2Word1 = ((uint32_t)id[4] << 8) | (uint32_t)id[5];
+  }
+}
+
 static uint32_t COB_GenerateTestValue(void)
 {
   static uint32_t seed = 0x434F4201U;
@@ -165,6 +222,10 @@ static uint32_t COB_RunFlashSelfTest(void)
   EXTMEM_DRIVER_NOR_SFDP_StatusTypeDef driver_status;
 
   COB_FlashTestStage = 1U;
+  COB_ProbeFlashJedecId(HAL_XSPI_CSSEL_NCS1);
+  COB_ProbeFlashJedecId(HAL_XSPI_CSSEL_NCS2);
+  MODIFY_REG(hxspi2.Instance->CR, XSPI_CR_CSSEL, hxspi2.Init.MemorySelect);
+
   driver_status = EXTMEM_DRIVER_NOR_SFDP_Init(extmem_list_config[EXTMEMORY_2].Handle,
                                               extmem_list_config[EXTMEMORY_2].ConfigType,
                                               HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_XSPI2),

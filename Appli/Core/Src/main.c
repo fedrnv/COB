@@ -70,6 +70,14 @@ volatile uint32_t COB_FlashInfoErase1SizePower = 0U;
 volatile uint32_t COB_FlashInfoErase2SizePower = 0U;
 volatile uint32_t COB_FlashInfoErase3SizePower = 0U;
 volatile uint32_t COB_FlashInfoErase4SizePower = 0U;
+volatile int32_t COB_FlashJedecNcs1CommandStatus = 0;
+volatile int32_t COB_FlashJedecNcs1ReceiveStatus = 0;
+volatile uint32_t COB_FlashJedecNcs1Word0 = 0U;
+volatile uint32_t COB_FlashJedecNcs1Word1 = 0U;
+volatile int32_t COB_FlashJedecNcs2CommandStatus = 0;
+volatile int32_t COB_FlashJedecNcs2ReceiveStatus = 0;
+volatile uint32_t COB_FlashJedecNcs2Word0 = 0U;
+volatile uint32_t COB_FlashJedecNcs2Word1 = 0U;
 
 /* USER CODE END PV */
 
