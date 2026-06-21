@@ -10,6 +10,8 @@
 #include "cob_psram.h"
 #include "xspi.h"
 
+extern volatile uint32_t COB_PsramIoStage;
+
 #define COB_PSRAM_TIMEOUT_MS 100U
 #define COB_PSRAM_READ_ALT_CMD 0x00U
 #define COB_PSRAM_WRITE_ALT_CMD 0x80U
@@ -83,10 +85,14 @@ HAL_StatusTypeDef COB_PSRAM_Write(uint32_t address, const uint8_t *data, uint32_
     return HAL_ERROR;
   }
 
+  COB_PsramIoStage = 100U;
   status = COB_PSRAM_Command(COB_PSRAM_WRITE_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  COB_PsramIoStage = 101U;
   if (status == HAL_OK)
   {
+    COB_PsramIoStage = 102U;
     status = HAL_XSPI_Transmit(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+    COB_PsramIoStage = 103U;
   }
 
   if (status != HAL_OK)
@@ -111,10 +117,14 @@ HAL_StatusTypeDef COB_PSRAM_ReadWithDummy(uint32_t address, uint8_t *data, uint3
     return HAL_ERROR;
   }
 
+  COB_PsramIoStage = 200U + dummy_cycles;
   status = COB_PSRAM_Command(COB_PSRAM_READ_CMD, address, size, dummy_cycles);
+  COB_PsramIoStage = 210U + dummy_cycles;
   if (status == HAL_OK)
   {
+    COB_PsramIoStage = 220U + dummy_cycles;
     status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+    COB_PsramIoStage = 230U + dummy_cycles;
   }
 
   if (status != HAL_OK)
@@ -134,14 +144,18 @@ HAL_StatusTypeDef COB_PSRAM_ReadNoDqs(uint32_t address, uint8_t *data, uint32_t 
     return HAL_ERROR;
   }
 
+  COB_PsramIoStage = 300U;
   status = COB_PSRAM_CommandEx(COB_PSRAM_READ_CMD,
                                address,
                                size,
                                COB_PSRAM_READ_DUMMY_CYCLES,
                                HAL_XSPI_DQS_DISABLE);
+  COB_PsramIoStage = 301U;
   if (status == HAL_OK)
   {
+    COB_PsramIoStage = 302U;
     status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+    COB_PsramIoStage = 303U;
   }
 
   if (status != HAL_OK)
@@ -161,10 +175,14 @@ HAL_StatusTypeDef COB_PSRAM_WriteAlt(uint32_t address, const uint8_t *data, uint
     return HAL_ERROR;
   }
 
+  COB_PsramIoStage = 400U;
   status = COB_PSRAM_Command(COB_PSRAM_WRITE_ALT_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  COB_PsramIoStage = 401U;
   if (status == HAL_OK)
   {
+    COB_PsramIoStage = 402U;
     status = HAL_XSPI_Transmit(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+    COB_PsramIoStage = 403U;
   }
 
   if (status != HAL_OK)

@@ -149,6 +149,7 @@ extern volatile int32_t COB_PsramWrapStatus;
 extern volatile int32_t COB_PsramEnableMapStatus;
 extern volatile uint32_t COB_PsramXspi1ErrorCode;
 extern volatile uint32_t COB_PsramXspi1State;
+extern volatile uint32_t COB_PsramIoStage;
 
 /* USER CODE END PV */
 
@@ -906,6 +907,7 @@ static void COB_PsramThreadEntry(ULONG thread_input)
 
   tx_thread_sleep(COB_PSRAM_TEST_START_DELAY_TICKS);
 
+  COB_PsramIoStage = 0U;
   COB_PsramTestPassed = 0U;
   COB_PsramTestPassed = COB_RunPsramSelfTest();
 

@@ -140,6 +140,7 @@ volatile int32_t COB_PsramWrapStatus = 0;
 volatile int32_t COB_PsramEnableMapStatus = 0;
 volatile uint32_t COB_PsramXspi1ErrorCode = 0U;
 volatile uint32_t COB_PsramXspi1State = 0U;
+volatile uint32_t COB_PsramIoStage = 0U;
 
 /* USER CODE END PV */
 
