@@ -50,6 +50,7 @@
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
 #define COB_ENABLE_PSRAM_TEST_THREAD 1U
 #define COB_PSRAM_TEST_START_DELAY_TICKS (10U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_ENABLE_PSRAM_REGISTER_PROBE 0U
 
 /* USER CODE END PD */
 
@@ -428,6 +429,7 @@ static void COB_CapturePsramXspiRegisters(void)
 
 static void COB_ProbePsramRegisters(void)
 {
+#if (COB_ENABLE_PSRAM_REGISTER_PROBE != 0U)
   uint8_t data[4] = {0};
 
   memset(data, 0, sizeof(data));
@@ -464,6 +466,19 @@ static void COB_ProbePsramRegisters(void)
 
   COB_PsramTestStage = 15U;
   COB_CapturePsramXspiRegisters();
+#else
+  COB_PsramReg0Status = -1;
+  COB_PsramReg2Status = -1;
+  COB_PsramReg1000Status = -1;
+  COB_PsramReg1002Status = -1;
+  COB_PsramReg0Word = 0U;
+  COB_PsramReg2Word = 0U;
+  COB_PsramReg1000Word = 0U;
+  COB_PsramReg1002Word = 0U;
+  COB_PsramTestLastStatus = 0;
+  COB_PsramTestStage = 15U;
+  COB_CapturePsramXspiRegisters();
+#endif /* COB_ENABLE_PSRAM_REGISTER_PROBE != 0U */
 }
 
 static uint32_t COB_RunFlashSelfTest(void)
