@@ -24,8 +24,9 @@ static uint32_t COB_PSRAM_Instruction(uint32_t opcode)
   return ((opcode & 0xFFU) << 8) | ((~opcode) & 0xFFU);
 }
 
-static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t address,
-                                           uint32_t size, uint32_t dummy_cycles)
+static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t address,
+                                             uint32_t size, uint32_t dummy_cycles,
+                                             uint32_t dqs_mode)
 {
   XSPI_RegularCmdTypeDef command = {0};
   HAL_StatusTypeDef status;
@@ -55,7 +56,7 @@ static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t addres
   command.DataLength = size;
   command.DataDTRMode = HAL_XSPI_DATA_DTR_ENABLE;
   command.DummyCycles = dummy_cycles;
-  command.DQSMode = HAL_XSPI_DQS_ENABLE;
+  command.DQSMode = dqs_mode;
 
   hxspi1.ErrorCode = HAL_XSPI_ERROR_NONE;
   status = HAL_XSPI_Command(&hxspi1, &command, COB_PSRAM_TIMEOUT_MS);
@@ -65,6 +66,12 @@ static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t addres
   }
 
   return status;
+}
+
+static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t address,
+                                           uint32_t size, uint32_t dummy_cycles)
+{
+  return COB_PSRAM_CommandEx(instruction, address, size, dummy_cycles, HAL_XSPI_DQS_ENABLE);
 }
 
 HAL_StatusTypeDef COB_PSRAM_Write(uint32_t address, const uint8_t *data, uint32_t size)
@@ -100,6 +107,33 @@ HAL_StatusTypeDef COB_PSRAM_Read(uint32_t address, uint8_t *data, uint32_t size)
   }
 
   status = COB_PSRAM_Command(COB_PSRAM_READ_CMD, address, size, COB_PSRAM_READ_DUMMY_CYCLES);
+  if (status == HAL_OK)
+  {
+    status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+  }
+
+  if (status != HAL_OK)
+  {
+    (void)HAL_XSPI_Abort(&hxspi1);
+  }
+
+  return status;
+}
+
+HAL_StatusTypeDef COB_PSRAM_ReadNoDqs(uint32_t address, uint8_t *data, uint32_t size)
+{
+  HAL_StatusTypeDef status;
+
+  if (data == NULL)
+  {
+    return HAL_ERROR;
+  }
+
+  status = COB_PSRAM_CommandEx(COB_PSRAM_READ_CMD,
+                               address,
+                               size,
+                               COB_PSRAM_READ_DUMMY_CYCLES,
+                               HAL_XSPI_DQS_DISABLE);
   if (status == HAL_OK)
   {
     status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);

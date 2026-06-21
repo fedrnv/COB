@@ -109,6 +109,9 @@ extern volatile uint32_t COB_PsramReadWord1;
 extern volatile int32_t COB_PsramReadAltStatus;
 extern volatile uint32_t COB_PsramReadAltWord0;
 extern volatile uint32_t COB_PsramReadAltWord1;
+extern volatile int32_t COB_PsramReadNoDqsStatus;
+extern volatile uint32_t COB_PsramReadNoDqsWord0;
+extern volatile uint32_t COB_PsramReadNoDqsWord1;
 extern volatile uint32_t COB_PsramWrite2Word0;
 extern volatile uint32_t COB_PsramWrite2Word1;
 extern volatile uint32_t COB_PsramRead2Word0;
@@ -591,6 +594,7 @@ static uint32_t COB_RunPsramSelfTest(void)
   uint8_t write2_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_alt_buffer[sizeof(write_buffer)] = {0};
+  uint8_t read_no_dqs_buffer[sizeof(write_buffer)] = {0};
   uint8_t read2_buffer[sizeof(write_buffer)] = {0};
   uint8_t alt_write_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_after_alt_write_buffer[sizeof(write_buffer)] = {0};
@@ -600,6 +604,7 @@ static uint32_t COB_RunPsramSelfTest(void)
   HAL_StatusTypeDef write2_status;
   HAL_StatusTypeDef read_status;
   HAL_StatusTypeDef read_alt_status;
+  HAL_StatusTypeDef read_no_dqs_status;
   HAL_StatusTypeDef read2_status;
   HAL_StatusTypeDef write_alt_status;
   HAL_StatusTypeDef read_after_alt_write_status;
@@ -688,6 +693,14 @@ static uint32_t COB_RunPsramSelfTest(void)
 
   COB_PsramTestStage = 40U;
   errors = COB_CountBufferErrors(write_buffer, read_buffer, sizeof(write_buffer));
+
+  COB_PsramTestStage = 45U;
+  read_no_dqs_status = COB_PSRAM_ReadNoDqs(test_address,
+                                           read_no_dqs_buffer,
+                                           sizeof(read_no_dqs_buffer));
+  COB_PsramReadNoDqsStatus = (int32_t)read_no_dqs_status;
+  COB_PsramReadNoDqsWord0 = COB_PackLe32(&read_no_dqs_buffer[0]);
+  COB_PsramReadNoDqsWord1 = COB_PackLe32(&read_no_dqs_buffer[4]);
 
   COB_PsramTestStage = 50U;
   write2_status = COB_PSRAM_Write(test_address, write2_buffer, sizeof(write2_buffer));
