@@ -70,6 +70,17 @@ void MX_XSPI1_Init(void)
   }
   sHyperBusCfg.RWRecoveryTimeCycle = 0;
   sHyperBusCfg.AccessTimeCycle = 0;
+  /*
+   * PSRAM debug safety:
+   * Do not use these generated HyperBus timings as proof that memory-mapped
+   * PSRAM access is safe. A wrong HyperBus timing/RWDS/latency setup can leave
+   * an AXI transaction to XSPI1_BASE unfinished. If that happens while the core
+   * runs under debugger, watch expressions stop updating and the next debug
+   * connection may fail until board power is cycled.
+   *
+   * Before enabling real CPU reads/writes through XSPI1_BASE, validate the
+   * device timing separately and keep the test behind a manual debugger flag.
+   */
   sHyperBusCfg.WriteZeroLatency = HAL_XSPI_NO_LATENCY_ON_WRITE;
   sHyperBusCfg.LatencyMode = HAL_XSPI_VARIABLE_LATENCY;
   if (HAL_XSPI_HyperbusCfg(&hxspi1, &sHyperBusCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)

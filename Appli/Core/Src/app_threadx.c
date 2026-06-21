@@ -496,6 +496,24 @@ static uint32_t COB_RunPsramSelfTest(void)
   uint32_t base_address = 0U;
   uint32_t errors = 0U;
 
+  /*
+   * PSRAM debug safety:
+   * Do not replace the SAL_XSPI_EnableMapMode() call below with
+   * HAL_XSPI_HyperbusCmd() + HAL_XSPI_MemoryMapped() and then access
+   * XSPI1_BASE from this auto-start ThreadX test.
+   *
+   * That was tested and can hang the target before debugger watchers are read.
+   * The dangerous part is not the HAL call itself, but the first CPU read/write
+   * through the memory-mapped XSPI1 window and the following __DSB(). If the
+   * PSRAM HyperBus timing/RWDS/latency is wrong, the AXI transaction may never
+   * complete. After that ST-LINK/GDB may not reconnect until board power is
+   * cycled.
+   *
+   * If real memory-mapped PSRAM testing is needed, keep it behind a manual
+   * debugger flag, use a timeout-capable configuration, disable prefetch, touch
+   * only one word first, and always abort/disable memory-mapped mode before
+   * leaving the test.
+   */
   COB_PsramTestStage = 1U;
   COB_PsramMapStatus = (int32_t)EXTMEM_MemoryMappedMode(EXTMEMORY_1, EXTMEM_DISABLE);
   COB_PsramWrapStatus = (int32_t)HAL_OK;
@@ -536,6 +554,11 @@ static uint32_t COB_RunPsramSelfTest(void)
   psram = (volatile uint32_t *)base_address;
   COB_PsramTestValue = 0x5A5AA5A5UL ^ HAL_GetTick();
 
+  /*
+   * This block must only run after memory-mapped PSRAM has been proven safe.
+   * A failed or half-configured XSPI1 memory-mapped mode can hang on the write
+   * below or on the __DSB(), which makes the debugger appear stuck.
+   */
   COB_PsramTestStage = 20U;
   for (uint32_t i = 0U; i < COB_PSRAM_TEST_WORD_COUNT; i++)
   {
