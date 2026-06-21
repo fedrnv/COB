@@ -17,11 +17,11 @@
 #define COB_PSRAM_WRITE_CMD 0xA0U
 #define COB_PSRAM_READ_REG_CMD 0x40U
 #define COB_PSRAM_READ_DUMMY_CYCLES 4U
-#define COB_PSRAM_WRITE_DUMMY_CYCLES 4U
+#define COB_PSRAM_WRITE_DUMMY_CYCLES 0U
 
 static uint32_t COB_PSRAM_Instruction(uint32_t opcode)
 {
-  return ((opcode & 0xFFU) << 8) | ((~opcode) & 0xFFU);
+  return opcode & 0xFFU;
 }
 
 static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t address,
@@ -45,8 +45,8 @@ static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t addr
   command.IOSelect = HAL_XSPI_SELECT_IO_7_0;
   command.Instruction = COB_PSRAM_Instruction(instruction);
   command.InstructionMode = HAL_XSPI_INSTRUCTION_8_LINES;
-  command.InstructionWidth = HAL_XSPI_INSTRUCTION_16_BITS;
-  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_ENABLE;
+  command.InstructionWidth = HAL_XSPI_INSTRUCTION_8_BITS;
+  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_DISABLE;
   command.AddressMode = HAL_XSPI_ADDRESS_8_LINES;
   command.Address = address;
   command.AddressWidth = HAL_XSPI_ADDRESS_32_BITS;
@@ -83,7 +83,11 @@ HAL_StatusTypeDef COB_PSRAM_Write(uint32_t address, const uint8_t *data, uint32_
     return HAL_ERROR;
   }
 
-  status = COB_PSRAM_Command(COB_PSRAM_WRITE_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  status = COB_PSRAM_CommandEx(COB_PSRAM_WRITE_CMD,
+                               address,
+                               size,
+                               COB_PSRAM_WRITE_DUMMY_CYCLES,
+                               HAL_XSPI_DQS_DISABLE);
   if (status == HAL_OK)
   {
     status = HAL_XSPI_Transmit(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
@@ -156,7 +160,11 @@ HAL_StatusTypeDef COB_PSRAM_WriteAlt(uint32_t address, const uint8_t *data, uint
     return HAL_ERROR;
   }
 
-  status = COB_PSRAM_Command(COB_PSRAM_WRITE_ALT_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  status = COB_PSRAM_CommandEx(COB_PSRAM_WRITE_ALT_CMD,
+                               address,
+                               size,
+                               COB_PSRAM_WRITE_DUMMY_CYCLES,
+                               HAL_XSPI_DQS_DISABLE);
   if (status == HAL_OK)
   {
     status = HAL_XSPI_Transmit(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
