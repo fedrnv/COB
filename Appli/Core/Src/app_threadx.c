@@ -110,6 +110,11 @@ extern volatile uint32_t COB_PsramWrite2Word0;
 extern volatile uint32_t COB_PsramWrite2Word1;
 extern volatile uint32_t COB_PsramRead2Word0;
 extern volatile uint32_t COB_PsramRead2Word1;
+extern volatile uint32_t COB_PsramXspi1Dcr1;
+extern volatile uint32_t COB_PsramXspi1Dcr2;
+extern volatile uint32_t COB_PsramXspi1Hlcr;
+extern volatile uint32_t COB_PsramXspi1Cr;
+extern volatile uint32_t COB_PsramXspi1Sr;
 extern volatile int32_t COB_PsramTestLastStatus;
 extern volatile int32_t COB_PsramMapStatus;
 extern volatile int32_t COB_PsramWrapStatus;
@@ -132,6 +137,7 @@ static uint32_t COB_RunFlashSelfTest(void);
 static uint32_t COB_RunPsramSelfTest(void);
 static uint32_t COB_PackLe32(const uint8_t *data);
 static uint32_t COB_CountBufferErrors(const uint8_t *expected, const uint8_t *actual, uint32_t size);
+static void COB_CapturePsramXspiRegisters(void);
 
 /* USER CODE END PFP */
 
@@ -378,6 +384,15 @@ static uint32_t COB_CountBufferErrors(const uint8_t *expected, const uint8_t *ac
   return errors;
 }
 
+static void COB_CapturePsramXspiRegisters(void)
+{
+  COB_PsramXspi1Dcr1 = hxspi1.Instance->DCR1;
+  COB_PsramXspi1Dcr2 = hxspi1.Instance->DCR2;
+  COB_PsramXspi1Hlcr = hxspi1.Instance->HLCR;
+  COB_PsramXspi1Cr = hxspi1.Instance->CR;
+  COB_PsramXspi1Sr = hxspi1.Instance->SR;
+}
+
 static uint32_t COB_RunFlashSelfTest(void)
 {
   EXTMEM_NOR_SFDP_FlashInfoTypeDef info = {0};
@@ -552,6 +567,7 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramEnableMapStatus = (int32_t)HAL_OK;
   COB_PsramTestBaseAddress = test_address;
   COB_PsramTestValue = 0x5A5AA5A5UL ^ HAL_GetTick();
+  COB_CapturePsramXspiRegisters();
 
   for (uint32_t i = 0U; i < sizeof(write_buffer); i++)
   {
@@ -570,6 +586,7 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramBeforeWord1 = COB_PackLe32(&before_buffer[4]);
   COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
   COB_PsramXspi1State = (uint32_t)hxspi1.State;
+  COB_CapturePsramXspiRegisters();
   if (before_status != HAL_OK)
   {
     COB_PsramTestStage = 11U;
