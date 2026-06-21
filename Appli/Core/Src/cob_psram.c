@@ -11,6 +11,10 @@
 #include "xspi.h"
 
 extern volatile uint32_t COB_PsramIoStage;
+extern volatile uint32_t COB_PsramXspi1Cr;
+extern volatile uint32_t COB_PsramXspi1Sr;
+extern volatile uint32_t COB_PsramXspi1ErrorCode;
+extern volatile uint32_t COB_PsramXspi1State;
 
 #define COB_PSRAM_TIMEOUT_MS 100U
 #define COB_PSRAM_READ_ALT_CMD 0x00U
@@ -59,6 +63,11 @@ static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t addr
   command.DataDTRMode = HAL_XSPI_DATA_DTR_ENABLE;
   command.DummyCycles = dummy_cycles;
   command.DQSMode = dqs_mode;
+
+  COB_PsramXspi1Cr = hxspi1.Instance->CR;
+  COB_PsramXspi1Sr = hxspi1.Instance->SR;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
 
   hxspi1.ErrorCode = HAL_XSPI_ERROR_NONE;
   status = HAL_XSPI_Command(&hxspi1, &command, COB_PSRAM_TIMEOUT_MS);
