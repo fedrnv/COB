@@ -48,7 +48,8 @@
 #define COB_FLASH_THREAD_PRIORITY 10U
 #define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
-#define COB_ENABLE_PSRAM_TEST_THREAD 0U
+#define COB_ENABLE_PSRAM_TEST_THREAD 1U
+#define COB_PSRAM_TEST_START_DELAY_TICKS (10U * TX_TIMER_TICKS_PER_SECOND)
 
 /* USER CODE END PD */
 
@@ -885,6 +886,12 @@ static void COB_PsramThreadEntry(ULONG thread_input)
 {
   (void)thread_input;
 
+  COB_PsramTestStage = 0xFFFFFFFEU;
+  COB_PsramTestPassed = 1U;
+
+  tx_thread_sleep(COB_PSRAM_TEST_START_DELAY_TICKS);
+
+  COB_PsramTestPassed = 0U;
   COB_PsramTestPassed = COB_RunPsramSelfTest();
 
   while (1)
