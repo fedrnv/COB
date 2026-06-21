@@ -11,6 +11,7 @@
 #include "xspi.h"
 
 #define COB_PSRAM_TIMEOUT_MS 100U
+#define COB_PSRAM_READ_ALT_CMD 0x00U
 #define COB_PSRAM_READ_CMD 0x20U
 #define COB_PSRAM_WRITE_CMD 0xA0U
 #define COB_PSRAM_READ_REG_CMD 0x40U
@@ -93,6 +94,29 @@ HAL_StatusTypeDef COB_PSRAM_Read(uint32_t address, uint8_t *data, uint32_t size)
   }
 
   status = COB_PSRAM_Command(COB_PSRAM_READ_CMD, address, size, COB_PSRAM_READ_DUMMY_CYCLES);
+  if (status == HAL_OK)
+  {
+    status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
+  }
+
+  if (status != HAL_OK)
+  {
+    (void)HAL_XSPI_Abort(&hxspi1);
+  }
+
+  return status;
+}
+
+HAL_StatusTypeDef COB_PSRAM_ReadAlt(uint32_t address, uint8_t *data, uint32_t size)
+{
+  HAL_StatusTypeDef status;
+
+  if (data == NULL)
+  {
+    return HAL_ERROR;
+  }
+
+  status = COB_PSRAM_Command(COB_PSRAM_READ_ALT_CMD, address, size, COB_PSRAM_READ_DUMMY_CYCLES);
   if (status == HAL_OK)
   {
     status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);

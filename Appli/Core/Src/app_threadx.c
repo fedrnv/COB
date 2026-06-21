@@ -106,6 +106,9 @@ extern volatile uint32_t COB_PsramWriteWord0;
 extern volatile uint32_t COB_PsramWriteWord1;
 extern volatile uint32_t COB_PsramReadWord0;
 extern volatile uint32_t COB_PsramReadWord1;
+extern volatile int32_t COB_PsramReadAltStatus;
+extern volatile uint32_t COB_PsramReadAltWord0;
+extern volatile uint32_t COB_PsramReadAltWord1;
 extern volatile uint32_t COB_PsramWrite2Word0;
 extern volatile uint32_t COB_PsramWrite2Word1;
 extern volatile uint32_t COB_PsramRead2Word0;
@@ -582,11 +585,13 @@ static uint32_t COB_RunPsramSelfTest(void)
   uint8_t write_buffer[64] = {0};
   uint8_t write2_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_buffer[sizeof(write_buffer)] = {0};
+  uint8_t read_alt_buffer[sizeof(write_buffer)] = {0};
   uint8_t read2_buffer[sizeof(write_buffer)] = {0};
   const uint32_t test_address = 0U;
   HAL_StatusTypeDef write_status;
   HAL_StatusTypeDef write2_status;
   HAL_StatusTypeDef read_status;
+  HAL_StatusTypeDef read_alt_status;
   HAL_StatusTypeDef read2_status;
   uint32_t errors = 0U;
   uint32_t errors2 = 0U;
@@ -610,6 +615,8 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramWrite2Word1 = COB_PackLe32(&write2_buffer[4]);
   COB_PsramBeforeWord0 = 0xFFFFFFFFU;
   COB_PsramBeforeWord1 = 0xFFFFFFFFU;
+  COB_PsramTestStage = 10U;
+  COB_ProbePsramRegisters();
 
   COB_PsramTestStage = 20U;
   write_status = COB_PSRAM_Write(test_address, write_buffer, sizeof(write_buffer));
@@ -636,13 +643,34 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramXspi1State = (uint32_t)hxspi1.State;
   if (read_status != HAL_OK)
   {
-    COB_PsramTestStage = 31U;
-    printf("PSRAM TEST FAIL: read status=%ld xspi_error=0x%08lX state=%lu addr=0x%08lX\r\n",
-           (long)read_status,
-           (unsigned long)COB_PsramXspi1ErrorCode,
-           (unsigned long)COB_PsramXspi1State,
-           (unsigned long)test_address);
-    return 0U;
+    COB_PsramTestStage = 32U;
+    read_alt_status = COB_PSRAM_ReadAlt(test_address, read_alt_buffer, sizeof(read_alt_buffer));
+    COB_PsramReadAltStatus = (int32_t)read_alt_status;
+    COB_PsramReadAltWord0 = COB_PackLe32(&read_alt_buffer[0]);
+    COB_PsramReadAltWord1 = COB_PackLe32(&read_alt_buffer[4]);
+    COB_PsramTestLastStatus = (int32_t)read_alt_status;
+    COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+    COB_PsramXspi1State = (uint32_t)hxspi1.State;
+    if (read_alt_status != HAL_OK)
+    {
+      COB_PsramTestStage = 31U;
+      printf("PSRAM TEST FAIL: read status=%ld alt_status=%ld xspi_error=0x%08lX state=%lu addr=0x%08lX\r\n",
+             (long)read_status,
+             (long)read_alt_status,
+             (unsigned long)COB_PsramXspi1ErrorCode,
+             (unsigned long)COB_PsramXspi1State,
+             (unsigned long)test_address);
+      return 0U;
+    }
+    memcpy(read_buffer, read_alt_buffer, sizeof(read_buffer));
+    COB_PsramReadWord0 = COB_PsramReadAltWord0;
+    COB_PsramReadWord1 = COB_PsramReadAltWord1;
+  }
+  else
+  {
+    COB_PsramReadAltStatus = (int32_t)HAL_OK;
+    COB_PsramReadAltWord0 = 0xFFFFFFFFU;
+    COB_PsramReadAltWord1 = 0xFFFFFFFFU;
   }
 
   COB_PsramTestStage = 40U;
@@ -681,9 +709,6 @@ static uint32_t COB_RunPsramSelfTest(void)
            (unsigned long)test_address);
     return 0U;
   }
-
-  COB_PsramTestStage = 70U;
-  COB_ProbePsramRegisters();
 
   if (errors == 0U)
   {
