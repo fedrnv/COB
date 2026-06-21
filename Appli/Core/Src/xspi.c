@@ -50,7 +50,7 @@ void MX_XSPI1_Init(void)
   hxspi1.Init.FreeRunningClock = HAL_XSPI_FREERUNCLK_DISABLE;
   hxspi1.Init.ClockMode = HAL_XSPI_CLOCK_MODE_0;
   hxspi1.Init.WrapSize = HAL_XSPI_WRAP_NOT_SUPPORTED;
-  hxspi1.Init.ClockPrescaler = 0;
+  hxspi1.Init.ClockPrescaler = 1;
   hxspi1.Init.SampleShifting = HAL_XSPI_SAMPLE_SHIFT_NONE;
   hxspi1.Init.DelayHoldQuarterCycle = HAL_XSPI_DHQC_DISABLE;
   hxspi1.Init.ChipSelectBoundary = HAL_XSPI_BONDARYOF_NONE;
@@ -82,7 +82,7 @@ void MX_XSPI1_Init(void)
    * device timing separately and keep the test behind a manual debugger flag.
    */
   sHyperBusCfg.WriteZeroLatency = HAL_XSPI_LATENCY_ON_WRITE;
-  sHyperBusCfg.LatencyMode = HAL_XSPI_FIXED_LATENCY;
+  sHyperBusCfg.LatencyMode = HAL_XSPI_VARIABLE_LATENCY;
   if (HAL_XSPI_HyperbusCfg(&hxspi1, &sHyperBusCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();

@@ -537,7 +537,7 @@ static uint32_t COB_RunPsramSelfTest(void)
   uint8_t before_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_buffer[sizeof(write_buffer)] = {0};
   uint8_t read2_buffer[sizeof(write_buffer)] = {0};
-  const uint32_t test_address = 0x1000U;
+  const uint32_t test_address = 0U;
   HAL_StatusTypeDef write_status;
   HAL_StatusTypeDef write2_status;
   HAL_StatusTypeDef before_status;
