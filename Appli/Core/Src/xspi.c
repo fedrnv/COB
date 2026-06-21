@@ -82,7 +82,7 @@ void MX_XSPI1_Init(void)
    * device timing separately and keep the test behind a manual debugger flag.
    */
   sHyperBusCfg.WriteZeroLatency = HAL_XSPI_LATENCY_ON_WRITE;
-  sHyperBusCfg.LatencyMode = HAL_XSPI_VARIABLE_LATENCY;
+  sHyperBusCfg.LatencyMode = HAL_XSPI_FIXED_LATENCY;
   if (HAL_XSPI_HyperbusCfg(&hxspi1, &sHyperBusCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();

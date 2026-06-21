@@ -34,6 +34,7 @@ static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t address, uint32_t size)
   command.DQSMode = HAL_XSPI_DQS_ENABLE;
   command.DataMode = HAL_XSPI_DATA_8_LINES;
 
+  hxspi1.ErrorCode = HAL_XSPI_ERROR_NONE;
   status = HAL_XSPI_HyperbusCmd(&hxspi1, &command, COB_PSRAM_TIMEOUT_MS);
   if (status != HAL_OK)
   {
