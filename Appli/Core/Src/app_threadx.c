@@ -51,6 +51,7 @@
 #define COB_ENABLE_PSRAM_TEST_THREAD 1U
 #define COB_PSRAM_TEST_START_DELAY_TICKS (10U * TX_TIMER_TICKS_PER_SECOND)
 #define COB_ENABLE_PSRAM_REGISTER_PROBE 0U
+#define COB_ENABLE_PSRAM_WRITE_TEST 0U
 
 /* USER CODE END PD */
 
@@ -687,6 +688,60 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramBeforeWord1 = 0xFFFFFFFFU;
   COB_PsramTestStage = 10U;
   COB_ProbePsramRegisters();
+
+#if (COB_ENABLE_PSRAM_WRITE_TEST == 0U)
+  COB_PsramTestStage = 25U;
+  COB_PsramTestLastStatus = -1;
+  COB_PsramWriteAltStatus = -1;
+  COB_PsramReadAfterAltWriteStatus = -1;
+  COB_PsramReadAltStatus = -1;
+
+  read_status = COB_PSRAM_Read(test_address, read_buffer, sizeof(read_buffer));
+  COB_PsramTestLastStatus = (int32_t)read_status;
+  COB_PsramReadWord0 = COB_PackLe32(&read_buffer[0]);
+  COB_PsramReadWord1 = COB_PackLe32(&read_buffer[4]);
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
+
+  read_no_dqs_status = COB_PSRAM_ReadNoDqs(test_address,
+                                           read_no_dqs_buffer,
+                                           sizeof(read_no_dqs_buffer));
+  COB_PsramReadNoDqsStatus = (int32_t)read_no_dqs_status;
+  COB_PsramReadNoDqsWord0 = COB_PackLe32(&read_no_dqs_buffer[0]);
+  COB_PsramReadNoDqsWord1 = COB_PackLe32(&read_no_dqs_buffer[4]);
+
+  read_dummy6_status = COB_PSRAM_ReadWithDummy(test_address,
+                                               read_dummy6_buffer,
+                                               sizeof(read_dummy6_buffer),
+                                               6U);
+  COB_PsramReadDummy6Status = (int32_t)read_dummy6_status;
+  COB_PsramReadDummy6Word0 = COB_PackLe32(&read_dummy6_buffer[0]);
+
+  read_dummy8_status = COB_PSRAM_ReadWithDummy(test_address,
+                                               read_dummy8_buffer,
+                                               sizeof(read_dummy8_buffer),
+                                               8U);
+  COB_PsramReadDummy8Status = (int32_t)read_dummy8_status;
+  COB_PsramReadDummy8Word0 = COB_PackLe32(&read_dummy8_buffer[0]);
+
+  read_dummy10_status = COB_PSRAM_ReadWithDummy(test_address,
+                                                read_dummy10_buffer,
+                                                sizeof(read_dummy10_buffer),
+                                                10U);
+  COB_PsramReadDummy10Status = (int32_t)read_dummy10_status;
+  COB_PsramReadDummy10Word0 = COB_PackLe32(&read_dummy10_buffer[0]);
+
+  COB_PsramTestStage = 72U;
+  printf("PSRAM DUMP READY: read-only read=0x%08lX no_dqs=0x%08lX d6=0x%08lX d8=0x%08lX d10=0x%08lX last=%ld err=0x%08lX\r\n",
+         (unsigned long)COB_PsramReadWord0,
+         (unsigned long)COB_PsramReadNoDqsWord0,
+         (unsigned long)COB_PsramReadDummy6Word0,
+         (unsigned long)COB_PsramReadDummy8Word0,
+         (unsigned long)COB_PsramReadDummy10Word0,
+         (long)COB_PsramTestLastStatus,
+         (unsigned long)COB_PsramXspi1ErrorCode);
+  return 0U;
+#endif /* COB_ENABLE_PSRAM_WRITE_TEST == 0U */
 
   COB_PsramTestStage = 20U;
   write_status = COB_PSRAM_Write(test_address, write_buffer, sizeof(write_buffer));
