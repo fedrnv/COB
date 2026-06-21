@@ -115,6 +115,14 @@ extern volatile uint32_t COB_PsramXspi1Dcr2;
 extern volatile uint32_t COB_PsramXspi1Hlcr;
 extern volatile uint32_t COB_PsramXspi1Cr;
 extern volatile uint32_t COB_PsramXspi1Sr;
+extern volatile int32_t COB_PsramReg0Status;
+extern volatile int32_t COB_PsramReg2Status;
+extern volatile int32_t COB_PsramReg1000Status;
+extern volatile int32_t COB_PsramReg1002Status;
+extern volatile uint32_t COB_PsramReg0Word;
+extern volatile uint32_t COB_PsramReg2Word;
+extern volatile uint32_t COB_PsramReg1000Word;
+extern volatile uint32_t COB_PsramReg1002Word;
 extern volatile int32_t COB_PsramTestLastStatus;
 extern volatile int32_t COB_PsramMapStatus;
 extern volatile int32_t COB_PsramWrapStatus;
@@ -138,6 +146,7 @@ static uint32_t COB_RunPsramSelfTest(void);
 static uint32_t COB_PackLe32(const uint8_t *data);
 static uint32_t COB_CountBufferErrors(const uint8_t *expected, const uint8_t *actual, uint32_t size);
 static void COB_CapturePsramXspiRegisters(void);
+static void COB_ProbePsramRegisters(void);
 
 /* USER CODE END PFP */
 
@@ -391,6 +400,29 @@ static void COB_CapturePsramXspiRegisters(void)
   COB_PsramXspi1Hlcr = hxspi1.Instance->HLCR;
   COB_PsramXspi1Cr = hxspi1.Instance->CR;
   COB_PsramXspi1Sr = hxspi1.Instance->SR;
+}
+
+static void COB_ProbePsramRegisters(void)
+{
+  uint8_t data[4] = {0};
+
+  memset(data, 0, sizeof(data));
+  COB_PsramReg0Status = (int32_t)COB_PSRAM_ReadRegister(0x00000000U, data, 2U);
+  COB_PsramReg0Word = COB_PackLe32(data);
+
+  memset(data, 0, sizeof(data));
+  COB_PsramReg2Status = (int32_t)COB_PSRAM_ReadRegister(0x00000002U, data, 2U);
+  COB_PsramReg2Word = COB_PackLe32(data);
+
+  memset(data, 0, sizeof(data));
+  COB_PsramReg1000Status = (int32_t)COB_PSRAM_ReadRegister(0x00001000U, data, 2U);
+  COB_PsramReg1000Word = COB_PackLe32(data);
+
+  memset(data, 0, sizeof(data));
+  COB_PsramReg1002Status = (int32_t)COB_PSRAM_ReadRegister(0x00001002U, data, 2U);
+  COB_PsramReg1002Word = COB_PackLe32(data);
+
+  COB_CapturePsramXspiRegisters();
 }
 
 static uint32_t COB_RunFlashSelfTest(void)
@@ -649,6 +681,9 @@ static uint32_t COB_RunPsramSelfTest(void)
            (unsigned long)test_address);
     return 0U;
   }
+
+  COB_PsramTestStage = 70U;
+  COB_ProbePsramRegisters();
 
   if (errors == 0U)
   {
