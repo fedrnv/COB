@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "gpio.h"
+#include "cob_psram.h"
 #include "extmem_manager.h"
 #include "stm32_extmem.h"
 #include "stm32_sfdp_driver_api.h"
@@ -47,7 +48,6 @@
 #define COB_FLASH_THREAD_PRIORITY 10U
 #define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
-#define COB_PSRAM_TEST_WORD_COUNT 1024U
 
 /* USER CODE END PD */
 
@@ -491,87 +491,62 @@ static uint32_t COB_RunFlashSelfTest(void)
 
 static uint32_t COB_RunPsramSelfTest(void)
 {
-  volatile uint32_t *psram;
-  EXTMEM_StatusTypeDef status;
-  uint32_t base_address = 0U;
+  uint8_t write_buffer[64] = {0};
+  uint8_t read_buffer[sizeof(write_buffer)] = {0};
+  const uint32_t test_address = 0U;
+  HAL_StatusTypeDef write_status;
+  HAL_StatusTypeDef read_status;
   uint32_t errors = 0U;
 
-  /*
-   * PSRAM debug safety:
-   * Do not replace the SAL_XSPI_EnableMapMode() call below with
-   * HAL_XSPI_HyperbusCmd() + HAL_XSPI_MemoryMapped() and then access
-   * XSPI1_BASE from this auto-start ThreadX test.
-   *
-   * That was tested and can hang the target before debugger watchers are read.
-   * The dangerous part is not the HAL call itself, but the first CPU read/write
-   * through the memory-mapped XSPI1 window and the following __DSB(). If the
-   * PSRAM HyperBus timing/RWDS/latency is wrong, the AXI transaction may never
-   * complete. After that ST-LINK/GDB may not reconnect until board power is
-   * cycled.
-   *
-   * If real memory-mapped PSRAM testing is needed, keep it behind a manual
-   * debugger flag, use a timeout-capable configuration, disable prefetch, touch
-   * only one word first, and always abort/disable memory-mapped mode before
-   * leaving the test.
-   */
   COB_PsramTestStage = 1U;
-  COB_PsramMapStatus = (int32_t)EXTMEM_MemoryMappedMode(EXTMEMORY_1, EXTMEM_DISABLE);
+  COB_PsramMapStatus = (int32_t)HAL_XSPI_Abort(&hxspi1);
   COB_PsramWrapStatus = (int32_t)HAL_OK;
-
-  COB_PsramTestStage = 3U;
-  COB_PsramEnableMapStatus = (int32_t)SAL_XSPI_EnableMapMode(&extmem_list_config[EXTMEMORY_1].PsramObject.psram_private.SALObject,
-                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.Read_command,
-                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.Read_DummyCycle,
-                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.Write_command,
-                                                             extmem_list_config[EXTMEMORY_1].PsramObject.psram_public.Write_DummyCycle);
-  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
-  COB_PsramXspi1State = (uint32_t)hxspi1.State;
-  if (COB_PsramEnableMapStatus != (int32_t)HAL_OK)
-  {
-    COB_PsramTestStage = 12U;
-    COB_PsramTestLastStatus = COB_PsramEnableMapStatus;
-    printf("PSRAM TEST FAIL: enable map status=%ld xspi_error=0x%08lX state=%lu\r\n",
-           (long)COB_PsramEnableMapStatus,
-           (unsigned long)COB_PsramXspi1ErrorCode,
-           (unsigned long)COB_PsramXspi1State);
-    return 0U;
-  }
-  COB_PsramTestLastStatus = EXTMEM_OK;
-
-  COB_PsramTestStage = 2U;
-  status = EXTMEM_GetMapAddress(EXTMEMORY_1, &base_address);
-  COB_PsramTestLastStatus = (int32_t)status;
-  COB_PsramTestBaseAddress = base_address;
-  if ((status != EXTMEM_OK) || (base_address == 0U))
-  {
-    COB_PsramTestStage = 11U;
-    printf("PSRAM TEST FAIL: get map address status=%ld base=0x%08lX\r\n",
-           (long)status,
-           (unsigned long)base_address);
-    return 0U;
-  }
-
-  psram = (volatile uint32_t *)base_address;
+  COB_PsramEnableMapStatus = (int32_t)HAL_OK;
+  COB_PsramTestBaseAddress = test_address;
   COB_PsramTestValue = 0x5A5AA5A5UL ^ HAL_GetTick();
 
-  /*
-   * This block must only run after memory-mapped PSRAM has been proven safe.
-   * A failed or half-configured XSPI1 memory-mapped mode can hang on the write
-   * below or on the __DSB(), which makes the debugger appear stuck.
-   */
-  COB_PsramTestStage = 20U;
-  for (uint32_t i = 0U; i < COB_PSRAM_TEST_WORD_COUNT; i++)
+  for (uint32_t i = 0U; i < sizeof(write_buffer); i++)
   {
-    psram[i] = 0xA5A50000UL ^ i ^ COB_PsramTestValue;
+    write_buffer[i] = (uint8_t)((COB_PsramTestValue >> ((i & 3U) * 8U)) ^ i ^ 0xA5U);
   }
 
-  __DSB();
+  COB_PsramTestStage = 20U;
+  write_status = COB_PSRAM_Write(test_address, write_buffer, sizeof(write_buffer));
+  COB_PsramTestLastStatus = (int32_t)write_status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
+  if (write_status != HAL_OK)
+  {
+    COB_PsramTestStage = 21U;
+    printf("PSRAM TEST FAIL: write status=%ld xspi_error=0x%08lX state=%lu addr=0x%08lX\r\n",
+           (long)write_status,
+           (unsigned long)COB_PsramXspi1ErrorCode,
+           (unsigned long)COB_PsramXspi1State,
+           (unsigned long)test_address);
+    return 0U;
+  }
 
   COB_PsramTestStage = 30U;
-  for (uint32_t i = 0U; i < COB_PSRAM_TEST_WORD_COUNT; i++)
+  read_status = COB_PSRAM_Read(test_address, read_buffer, sizeof(read_buffer));
+  COB_PsramTestLastStatus = (int32_t)read_status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
+  if (read_status != HAL_OK)
   {
-    uint32_t expected = 0xA5A50000UL ^ i ^ COB_PsramTestValue;
-    uint32_t actual = psram[i];
+    COB_PsramTestStage = 31U;
+    printf("PSRAM TEST FAIL: read status=%ld xspi_error=0x%08lX state=%lu addr=0x%08lX\r\n",
+           (long)read_status,
+           (unsigned long)COB_PsramXspi1ErrorCode,
+           (unsigned long)COB_PsramXspi1State,
+           (unsigned long)test_address);
+    return 0U;
+  }
+
+  COB_PsramTestStage = 40U;
+  for (uint32_t i = 0U; i < sizeof(write_buffer); i++)
+  {
+    uint32_t expected = write_buffer[i];
+    uint32_t actual = read_buffer[i];
 
     if (actual != expected)
     {
@@ -588,8 +563,8 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramTestErrors = errors;
   if (errors != 0U)
   {
-    COB_PsramTestStage = 40U;
-    printf("PSRAM TEST FAIL: errors=%lu first=%lu expected=0x%08lX actual=0x%08lX base=0x%08lX\r\n",
+    COB_PsramTestStage = 41U;
+    printf("PSRAM TEST FAIL: errors=%lu first=%lu expected=0x%02lX actual=0x%02lX addr=0x%08lX\r\n",
            (unsigned long)errors,
            (unsigned long)COB_PsramTestFirstBadIndex,
            (unsigned long)COB_PsramTestExpected,
@@ -599,9 +574,10 @@ static uint32_t COB_RunPsramSelfTest(void)
   }
 
   COB_PsramTestStage = 100U;
-  printf("PSRAM TEST OK: base=0x%08lX words=%lu\r\n",
+  printf("PSRAM TEST OK: addr=0x%08lX bytes=%lu value=0x%08lX\r\n",
          (unsigned long)COB_PsramTestBaseAddress,
-         (unsigned long)COB_PSRAM_TEST_WORD_COUNT);
+         (unsigned long)sizeof(write_buffer),
+         (unsigned long)COB_PsramTestValue);
   return 1U;
 }
 

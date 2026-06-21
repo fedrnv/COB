@@ -68,8 +68,8 @@ void MX_XSPI1_Init(void)
   {
     Error_Handler();
   }
-  sHyperBusCfg.RWRecoveryTimeCycle = 0;
-  sHyperBusCfg.AccessTimeCycle = 0;
+  sHyperBusCfg.RWRecoveryTimeCycle = 6;
+  sHyperBusCfg.AccessTimeCycle = 6;
   /*
    * PSRAM debug safety:
    * Do not use these generated HyperBus timings as proof that memory-mapped
@@ -81,8 +81,8 @@ void MX_XSPI1_Init(void)
    * Before enabling real CPU reads/writes through XSPI1_BASE, validate the
    * device timing separately and keep the test behind a manual debugger flag.
    */
-  sHyperBusCfg.WriteZeroLatency = HAL_XSPI_NO_LATENCY_ON_WRITE;
-  sHyperBusCfg.LatencyMode = HAL_XSPI_VARIABLE_LATENCY;
+  sHyperBusCfg.WriteZeroLatency = HAL_XSPI_LATENCY_ON_WRITE;
+  sHyperBusCfg.LatencyMode = HAL_XSPI_FIXED_LATENCY;
   if (HAL_XSPI_HyperbusCfg(&hxspi1, &sHyperBusCfg, HAL_XSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
