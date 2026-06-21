@@ -19,6 +19,11 @@
 #define COB_PSRAM_READ_DUMMY_CYCLES 4U
 #define COB_PSRAM_WRITE_DUMMY_CYCLES 4U
 
+static uint32_t COB_PSRAM_Instruction(uint32_t opcode)
+{
+  return ((opcode & 0xFFU) << 8) | ((~opcode) & 0xFFU);
+}
+
 static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t address,
                                            uint32_t size, uint32_t dummy_cycles)
 {
@@ -37,10 +42,10 @@ static HAL_StatusTypeDef COB_PSRAM_Command(uint32_t instruction, uint32_t addres
 
   command.OperationType = HAL_XSPI_OPTYPE_COMMON_CFG;
   command.IOSelect = HAL_XSPI_SELECT_IO_7_0;
-  command.Instruction = instruction;
+  command.Instruction = COB_PSRAM_Instruction(instruction);
   command.InstructionMode = HAL_XSPI_INSTRUCTION_8_LINES;
-  command.InstructionWidth = HAL_XSPI_INSTRUCTION_8_BITS;
-  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_DISABLE;
+  command.InstructionWidth = HAL_XSPI_INSTRUCTION_16_BITS;
+  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_ENABLE;
   command.AddressMode = HAL_XSPI_ADDRESS_8_LINES;
   command.Address = address;
   command.AddressWidth = HAL_XSPI_ADDRESS_32_BITS;
