@@ -424,21 +424,38 @@ static void COB_ProbePsramRegisters(void)
   uint8_t data[4] = {0};
 
   memset(data, 0, sizeof(data));
+  COB_PsramTestStage = 11U;
   COB_PsramReg0Status = (int32_t)COB_PSRAM_ReadRegister(0x00000000U, data, 2U);
   COB_PsramReg0Word = COB_PackLe32(data);
+  COB_PsramTestLastStatus = COB_PsramReg0Status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
 
   memset(data, 0, sizeof(data));
+  COB_PsramTestStage = 12U;
   COB_PsramReg2Status = (int32_t)COB_PSRAM_ReadRegister(0x00000002U, data, 2U);
   COB_PsramReg2Word = COB_PackLe32(data);
+  COB_PsramTestLastStatus = COB_PsramReg2Status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
 
   memset(data, 0, sizeof(data));
+  COB_PsramTestStage = 13U;
   COB_PsramReg1000Status = (int32_t)COB_PSRAM_ReadRegister(0x00001000U, data, 2U);
   COB_PsramReg1000Word = COB_PackLe32(data);
+  COB_PsramTestLastStatus = COB_PsramReg1000Status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
 
   memset(data, 0, sizeof(data));
+  COB_PsramTestStage = 14U;
   COB_PsramReg1002Status = (int32_t)COB_PSRAM_ReadRegister(0x00001002U, data, 2U);
   COB_PsramReg1002Word = COB_PackLe32(data);
+  COB_PsramTestLastStatus = COB_PsramReg1002Status;
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
 
+  COB_PsramTestStage = 15U;
   COB_CapturePsramXspiRegisters();
 }
 
