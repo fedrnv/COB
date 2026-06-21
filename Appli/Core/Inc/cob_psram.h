@@ -21,6 +21,7 @@ HAL_StatusTypeDef COB_PSRAM_Write(uint32_t address, const uint8_t *data, uint32_
 HAL_StatusTypeDef COB_PSRAM_Read(uint32_t address, uint8_t *data, uint32_t size);
 HAL_StatusTypeDef COB_PSRAM_ReadWithDummy(uint32_t address, uint8_t *data, uint32_t size, uint32_t dummy_cycles);
 HAL_StatusTypeDef COB_PSRAM_ReadNoDqs(uint32_t address, uint8_t *data, uint32_t size);
+HAL_StatusTypeDef COB_PSRAM_ReadNoDqsWithDummy(uint32_t address, uint8_t *data, uint32_t size, uint32_t dummy_cycles);
 HAL_StatusTypeDef COB_PSRAM_WriteAlt(uint32_t address, const uint8_t *data, uint32_t size);
 HAL_StatusTypeDef COB_PSRAM_ReadAlt(uint32_t address, uint8_t *data, uint32_t size);
 HAL_StatusTypeDef COB_PSRAM_ReadRegister(uint32_t address, uint8_t *data, uint32_t size);

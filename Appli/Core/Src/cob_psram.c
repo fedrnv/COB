@@ -141,6 +141,11 @@ HAL_StatusTypeDef COB_PSRAM_ReadWithDummy(uint32_t address, uint8_t *data, uint3
 
 HAL_StatusTypeDef COB_PSRAM_ReadNoDqs(uint32_t address, uint8_t *data, uint32_t size)
 {
+  return COB_PSRAM_ReadNoDqsWithDummy(address, data, size, COB_PSRAM_READ_DUMMY_CYCLES);
+}
+
+HAL_StatusTypeDef COB_PSRAM_ReadNoDqsWithDummy(uint32_t address, uint8_t *data, uint32_t size, uint32_t dummy_cycles)
+{
   HAL_StatusTypeDef status;
 
   if (data == NULL)
@@ -148,18 +153,18 @@ HAL_StatusTypeDef COB_PSRAM_ReadNoDqs(uint32_t address, uint8_t *data, uint32_t 
     return HAL_ERROR;
   }
 
-  COB_PsramIoStage = 300U;
+  COB_PsramIoStage = 300U + dummy_cycles;
   status = COB_PSRAM_CommandEx(COB_PSRAM_READ_CMD,
                                address,
                                size,
-                               COB_PSRAM_READ_DUMMY_CYCLES,
+                               dummy_cycles,
                                HAL_XSPI_DQS_DISABLE);
-  COB_PsramIoStage = 301U;
+  COB_PsramIoStage = 310U + dummy_cycles;
   if (status == HAL_OK)
   {
-    COB_PsramIoStage = 302U;
+    COB_PsramIoStage = 320U + dummy_cycles;
     status = HAL_XSPI_Receive(&hxspi1, data, COB_PSRAM_TIMEOUT_MS);
-    COB_PsramIoStage = 303U;
+    COB_PsramIoStage = 330U + dummy_cycles;
   }
 
   if (status != HAL_OK)
