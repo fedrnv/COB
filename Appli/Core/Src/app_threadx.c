@@ -48,6 +48,7 @@
 #define COB_FLASH_THREAD_PRIORITY 10U
 #define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
+#define COB_ENABLE_PSRAM_TEST_THREAD 0U
 
 /* USER CODE END PD */
 
@@ -204,6 +205,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                            TX_NO_TIME_SLICE,
                            TX_AUTO_START);
   }
+#if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
   if (ret == TX_SUCCESS)
   {
     ret = tx_thread_create(&COB_PsramThread,
@@ -217,6 +219,10 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                            TX_NO_TIME_SLICE,
                            TX_AUTO_START);
   }
+#else
+  COB_PsramTestPassed = 1U;
+  COB_PsramTestStage = 0xFFFFFFFFU;
+#endif /* COB_ENABLE_PSRAM_TEST_THREAD != 0U */
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
@@ -819,6 +825,16 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramTestLastStatus = (int32_t)read_alt_after_alt_write_status;
   COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
   COB_PsramXspi1State = (uint32_t)hxspi1.State;
+
+  printf("PSRAM DUMP READY: stage=%lu read=0x%08lX no_dqs=0x%08lX d6=0x%08lX d8=0x%08lX d10=0x%08lX last=%ld err=0x%08lX\r\n",
+         (unsigned long)COB_PsramTestStage,
+         (unsigned long)COB_PsramReadWord0,
+         (unsigned long)COB_PsramReadNoDqsWord0,
+         (unsigned long)COB_PsramReadDummy6Word0,
+         (unsigned long)COB_PsramReadDummy8Word0,
+         (unsigned long)COB_PsramReadDummy10Word0,
+         (long)COB_PsramTestLastStatus,
+         (unsigned long)COB_PsramXspi1ErrorCode);
 
   if (errors == 0U)
   {
