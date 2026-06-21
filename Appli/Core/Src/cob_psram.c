@@ -19,7 +19,7 @@ extern volatile uint32_t COB_PsramIoStage;
 #define COB_PSRAM_WRITE_CMD 0xA0U
 #define COB_PSRAM_READ_REG_CMD 0x40U
 #define COB_PSRAM_READ_DUMMY_CYCLES 4U
-#define COB_PSRAM_WRITE_DUMMY_CYCLES 4U
+#define COB_PSRAM_WRITE_DUMMY_CYCLES 0U
 
 static uint32_t COB_PSRAM_Instruction(uint32_t opcode)
 {
@@ -86,7 +86,11 @@ HAL_StatusTypeDef COB_PSRAM_Write(uint32_t address, const uint8_t *data, uint32_
   }
 
   COB_PsramIoStage = 100U;
-  status = COB_PSRAM_Command(COB_PSRAM_WRITE_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  status = COB_PSRAM_CommandEx(COB_PSRAM_WRITE_CMD,
+                               address,
+                               size,
+                               COB_PSRAM_WRITE_DUMMY_CYCLES,
+                               HAL_XSPI_DQS_DISABLE);
   COB_PsramIoStage = 101U;
   if (status == HAL_OK)
   {
@@ -176,7 +180,11 @@ HAL_StatusTypeDef COB_PSRAM_WriteAlt(uint32_t address, const uint8_t *data, uint
   }
 
   COB_PsramIoStage = 400U;
-  status = COB_PSRAM_Command(COB_PSRAM_WRITE_ALT_CMD, address, size, COB_PSRAM_WRITE_DUMMY_CYCLES);
+  status = COB_PSRAM_CommandEx(COB_PSRAM_WRITE_ALT_CMD,
+                               address,
+                               size,
+                               COB_PSRAM_WRITE_DUMMY_CYCLES,
+                               HAL_XSPI_DQS_DISABLE);
   COB_PsramIoStage = 401U;
   if (status == HAL_OK)
   {

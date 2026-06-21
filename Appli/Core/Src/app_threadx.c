@@ -730,11 +730,13 @@ static uint32_t COB_RunPsramSelfTest(void)
              (unsigned long)COB_PsramXspi1ErrorCode,
              (unsigned long)COB_PsramXspi1State,
              (unsigned long)test_address);
-      return 0U;
     }
-    memcpy(read_buffer, read_alt_buffer, sizeof(read_buffer));
-    COB_PsramReadWord0 = COB_PsramReadAltWord0;
-    COB_PsramReadWord1 = COB_PsramReadAltWord1;
+    else
+    {
+      memcpy(read_buffer, read_alt_buffer, sizeof(read_buffer));
+      COB_PsramReadWord0 = COB_PsramReadAltWord0;
+      COB_PsramReadWord1 = COB_PsramReadAltWord1;
+    }
   }
   else
   {
@@ -807,7 +809,6 @@ static uint32_t COB_RunPsramSelfTest(void)
            (unsigned long)COB_PsramXspi1ErrorCode,
            (unsigned long)COB_PsramXspi1State,
            (unsigned long)test_address);
-    return 0U;
   }
 
   COB_PsramTestStage = 70U;
