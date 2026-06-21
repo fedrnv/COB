@@ -43,20 +43,25 @@
 /* USER CODE BEGIN PD */
 #define COB_LED_THREAD_STACK_SIZE 1024U
 #define COB_FLASH_THREAD_STACK_SIZE 2048U
-#define COB_PSRAM_THREAD_STACK_SIZE 1024U
+#define COB_PSRAM_THREAD_STACK_SIZE 4096U
 #define COB_LED_THREAD_PRIORITY   15U
 #define COB_FLASH_THREAD_PRIORITY 10U
 #define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
-#define COB_ENABLE_PSRAM_TEST_THREAD 1U
+#define COB_ENABLE_PSRAM_TEST_THREAD 0U
 #define COB_PSRAM_TEST_START_DELAY_TICKS (10U * TX_TIMER_TICKS_PER_SECOND)
 #define COB_ENABLE_PSRAM_REGISTER_PROBE 0U
-#define COB_ENABLE_PSRAM_WRITE_TEST 0U
+#define COB_ENABLE_PSRAM_WRITE_TEST 1U
 
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#if (COB_ENABLE_PSRAM_TEST_THREAD == 0U)
+#define COB_PSRAM_THREAD_UNUSED __attribute__((unused))
+#else
+#define COB_PSRAM_THREAD_UNUSED
+#endif /* COB_ENABLE_PSRAM_TEST_THREAD == 0U */
 
 /* USER CODE END PM */
 
@@ -64,10 +69,14 @@
 /* USER CODE BEGIN PV */
 static TX_THREAD COB_LedThread;
 static TX_THREAD COB_FlashThread;
+#if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
 static TX_THREAD COB_PsramThread;
+#endif /* COB_ENABLE_PSRAM_TEST_THREAD != 0U */
 static ULONG COB_LedThreadStack[COB_LED_THREAD_STACK_SIZE / sizeof(ULONG)];
 static ULONG COB_FlashThreadStack[COB_FLASH_THREAD_STACK_SIZE / sizeof(ULONG)];
+#if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
 static ULONG COB_PsramThreadStack[COB_PSRAM_THREAD_STACK_SIZE / sizeof(ULONG)];
+#endif /* COB_ENABLE_PSRAM_TEST_THREAD != 0U */
 extern volatile uint32_t COB_FlashTestStage;
 extern volatile uint32_t COB_FlashTestPassed;
 extern volatile uint32_t COB_FlashTestValue;
@@ -148,9 +157,28 @@ extern volatile int32_t COB_PsramTestLastStatus;
 extern volatile int32_t COB_PsramMapStatus;
 extern volatile int32_t COB_PsramWrapStatus;
 extern volatile int32_t COB_PsramEnableMapStatus;
+extern volatile int32_t COB_PsramDisableMapStatus;
+extern volatile uint32_t COB_PsramMapBaseAddress;
+extern volatile uint32_t COB_PsramMapWriteWord0;
+extern volatile uint32_t COB_PsramMapReadWord0;
+extern volatile uint32_t COB_PsramMapReadWord1;
+extern volatile int32_t COB_PsramSpiResetEnableStatus;
+extern volatile int32_t COB_PsramSpiResetStatus;
+extern volatile int32_t COB_PsramSpiIdCommandStatus;
+extern volatile int32_t COB_PsramSpiIdReceiveStatus;
+extern volatile uint32_t COB_PsramSpiIdWord0;
+extern volatile uint32_t COB_PsramSpiIdWord1;
+extern volatile uint32_t COB_PsramHyperAttempt;
+extern volatile uint32_t COB_PsramHyperLatency;
+extern volatile uint32_t COB_PsramHyperLatencyMode;
 extern volatile uint32_t COB_PsramXspi1ErrorCode;
 extern volatile uint32_t COB_PsramXspi1State;
 extern volatile uint32_t COB_PsramIoStage;
+extern volatile uint32_t COB_PsramXspi1Ccr;
+extern volatile uint32_t COB_PsramXspi1Tcr;
+extern volatile uint32_t COB_PsramXspi1Ir;
+extern volatile uint32_t COB_PsramXspi1Ar;
+extern volatile uint32_t COB_PsramXspi1Dlr;
 
 /* USER CODE END PV */
 
@@ -158,7 +186,7 @@ extern volatile uint32_t COB_PsramIoStage;
 /* USER CODE BEGIN PFP */
 static void COB_LedThreadEntry(ULONG thread_input);
 static void COB_FlashThreadEntry(ULONG thread_input);
-static void COB_PsramThreadEntry(ULONG thread_input);
+static void COB_PsramThreadEntry(ULONG thread_input) COB_PSRAM_THREAD_UNUSED;
 static void COB_ProbeFlashJedecId(uint32_t chip_select);
 static HAL_StatusTypeDef COB_XSPI_SendSimpleCommand(uint32_t chip_select, uint32_t instruction);
 static void COB_ProbeFlashSfdpSignature(uint32_t chip_select);
@@ -169,6 +197,8 @@ static uint32_t COB_PackLe32(const uint8_t *data);
 static uint32_t COB_CountBufferErrors(const uint8_t *expected, const uint8_t *actual, uint32_t size);
 static void COB_CapturePsramXspiRegisters(void);
 static void COB_ProbePsramRegisters(void);
+static uint32_t COB_ProbePsramMappedMode(uint32_t write_word0);
+static void COB_ProbePsramSpiId(void);
 
 /* USER CODE END PFP */
 
@@ -427,6 +457,11 @@ static void COB_CapturePsramXspiRegisters(void)
   COB_PsramXspi1Hlcr = hxspi1.Instance->HLCR;
   COB_PsramXspi1Cr = hxspi1.Instance->CR;
   COB_PsramXspi1Sr = hxspi1.Instance->SR;
+  COB_PsramXspi1Ccr = hxspi1.Instance->CCR;
+  COB_PsramXspi1Tcr = hxspi1.Instance->TCR;
+  COB_PsramXspi1Ir = hxspi1.Instance->IR;
+  COB_PsramXspi1Ar = hxspi1.Instance->AR;
+  COB_PsramXspi1Dlr = hxspi1.Instance->DLR;
 }
 
 static void COB_ProbePsramRegisters(void)
@@ -481,6 +516,195 @@ static void COB_ProbePsramRegisters(void)
   COB_PsramTestStage = 15U;
   COB_CapturePsramXspiRegisters();
 #endif /* COB_ENABLE_PSRAM_REGISTER_PROBE != 0U */
+}
+
+static uint32_t COB_ProbePsramMappedMode(uint32_t write_word0)
+{
+  XSPI_HyperbusCfgTypeDef hyperbus_config = {0};
+  XSPI_HyperbusCmdTypeDef hyperbus_command = {0};
+  uint8_t write_data[8] = {0};
+  uint8_t read_data[8] = {0};
+  uint32_t base_address = 0U;
+  EXTMEM_StatusTypeDef status;
+  HAL_StatusTypeDef hal_status;
+  uint32_t attempt = 0U;
+
+  COB_PsramMapWriteWord0 = write_word0;
+  COB_PsramMapReadWord0 = 0xFFFFFFFFU;
+  COB_PsramMapReadWord1 = 0xFFFFFFFFU;
+  COB_PsramMapBaseAddress = 0U;
+  COB_PsramDisableMapStatus = -1;
+
+  COB_PsramTestStage = 80U;
+  status = EXTMEM_GetMapAddress(EXTMEMORY_1, &base_address);
+  COB_PsramMapStatus = (int32_t)status;
+  COB_PsramMapBaseAddress = base_address;
+  if (status != EXTMEM_OK)
+  {
+    return 0U;
+  }
+
+  hyperbus_command.AddressSpace = HAL_XSPI_MEMORY_ADDRESS_SPACE;
+  hyperbus_command.Address = 0U;
+  hyperbus_command.AddressWidth = HAL_XSPI_ADDRESS_32_BITS;
+  hyperbus_command.DataLength = 8U;
+  hyperbus_command.DQSMode = HAL_XSPI_DQS_ENABLE;
+  hyperbus_command.DataMode = HAL_XSPI_DATA_8_LINES;
+
+  write_data[0] = (uint8_t)(write_word0);
+  write_data[1] = (uint8_t)(write_word0 >> 8);
+  write_data[2] = (uint8_t)(write_word0 >> 16);
+  write_data[3] = (uint8_t)(write_word0 >> 24);
+  write_data[4] = (uint8_t)(~write_word0);
+  write_data[5] = (uint8_t)(~write_word0 >> 8);
+  write_data[6] = (uint8_t)(~write_word0 >> 16);
+  write_data[7] = (uint8_t)(~write_word0 >> 24);
+
+  for (uint32_t mode = 0U; mode < 2U; mode++)
+  {
+    for (uint32_t latency = 3U; latency <= 15U; latency++)
+    {
+      attempt++;
+      COB_PsramHyperAttempt = attempt;
+      COB_PsramHyperLatency = latency;
+      COB_PsramHyperLatencyMode = mode;
+      COB_PsramMapReadWord0 = 0xFFFFFFFFU;
+      COB_PsramMapReadWord1 = 0xFFFFFFFFU;
+      memset(read_data, 0, sizeof(read_data));
+
+      COB_PsramTestStage = 81U;
+      (void)HAL_XSPI_Abort(&hxspi1);
+
+      hyperbus_config.RWRecoveryTimeCycle = latency;
+      hyperbus_config.AccessTimeCycle = latency;
+      hyperbus_config.WriteZeroLatency = HAL_XSPI_LATENCY_ON_WRITE;
+      hyperbus_config.LatencyMode = (mode == 0U) ? HAL_XSPI_FIXED_LATENCY : HAL_XSPI_VARIABLE_LATENCY;
+      hal_status = HAL_XSPI_HyperbusCfg(&hxspi1, &hyperbus_config, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+      COB_PsramWrapStatus = (int32_t)hal_status;
+      COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+      COB_PsramXspi1State = (uint32_t)hxspi1.State;
+      COB_CapturePsramXspiRegisters();
+      if (hal_status != HAL_OK)
+      {
+        continue;
+      }
+
+      COB_PsramTestStage = 82U;
+      hal_status = HAL_XSPI_HyperbusCmd(&hxspi1, &hyperbus_command, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+      COB_PsramEnableMapStatus = (int32_t)hal_status;
+      COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+      COB_PsramXspi1State = (uint32_t)hxspi1.State;
+      COB_CapturePsramXspiRegisters();
+      if (hal_status != HAL_OK)
+      {
+        continue;
+      }
+
+      COB_PsramTestStage = 83U;
+      hal_status = HAL_XSPI_Transmit(&hxspi1, write_data, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+      COB_PsramEnableMapStatus = (int32_t)hal_status;
+      COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+      COB_PsramXspi1State = (uint32_t)hxspi1.State;
+      COB_CapturePsramXspiRegisters();
+      if (hal_status != HAL_OK)
+      {
+        continue;
+      }
+
+      COB_PsramTestStage = 84U;
+      hal_status = HAL_XSPI_HyperbusCmd(&hxspi1, &hyperbus_command, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+      COB_PsramDisableMapStatus = (int32_t)hal_status;
+      COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+      COB_PsramXspi1State = (uint32_t)hxspi1.State;
+      COB_CapturePsramXspiRegisters();
+      if (hal_status == HAL_OK)
+      {
+        hal_status = HAL_XSPI_Receive(&hxspi1, read_data, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+        COB_PsramDisableMapStatus = (int32_t)hal_status;
+      }
+
+      COB_PsramMapReadWord0 = COB_PackLe32(&read_data[0]);
+      COB_PsramMapReadWord1 = COB_PackLe32(&read_data[4]);
+      (void)HAL_XSPI_Abort(&hxspi1);
+      COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+      COB_PsramXspi1State = (uint32_t)hxspi1.State;
+      COB_CapturePsramXspiRegisters();
+
+      if ((COB_PsramMapReadWord0 == write_word0) &&
+          (COB_PsramMapReadWord1 == ~write_word0))
+      {
+        return 1U;
+      }
+    }
+  }
+
+  return 0U;
+}
+
+static HAL_StatusTypeDef COB_PSRAM_SendSpiCommand(uint32_t instruction, uint8_t *data, uint32_t size)
+{
+  XSPI_RegularCmdTypeDef command = {0};
+  HAL_StatusTypeDef status;
+
+  (void)HAL_XSPI_Abort(&hxspi1);
+
+  command.OperationType = HAL_XSPI_OPTYPE_COMMON_CFG;
+  command.IOSelect = HAL_XSPI_SELECT_IO_7_0;
+  command.Instruction = instruction;
+  command.InstructionMode = HAL_XSPI_INSTRUCTION_1_LINE;
+  command.InstructionWidth = HAL_XSPI_INSTRUCTION_8_BITS;
+  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_DISABLE;
+  command.AddressMode = HAL_XSPI_ADDRESS_NONE;
+  command.AlternateBytesMode = HAL_XSPI_ALT_BYTES_NONE;
+  command.DataMode = (size == 0U) ? HAL_XSPI_DATA_NONE : HAL_XSPI_DATA_1_LINE;
+  command.DataLength = size;
+  command.DataDTRMode = HAL_XSPI_DATA_DTR_DISABLE;
+  command.DummyCycles = 0U;
+  command.DQSMode = HAL_XSPI_DQS_DISABLE;
+
+  status = HAL_XSPI_Command(&hxspi1, &command, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+  if ((status == HAL_OK) && (size != 0U))
+  {
+    status = HAL_XSPI_Receive(&hxspi1, data, HAL_XSPI_TIMEOUT_DEFAULT_VALUE);
+  }
+
+  if (status != HAL_OK)
+  {
+    (void)HAL_XSPI_Abort(&hxspi1);
+  }
+
+  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
+  COB_PsramXspi1State = (uint32_t)hxspi1.State;
+  COB_CapturePsramXspiRegisters();
+
+  return status;
+}
+
+static void COB_ProbePsramSpiId(void)
+{
+  uint8_t id[8] = {0};
+  HAL_StatusTypeDef command_status;
+  HAL_StatusTypeDef receive_status = HAL_ERROR;
+
+  COB_PsramTestStage = 16U;
+  COB_PsramSpiResetEnableStatus = (int32_t)COB_PSRAM_SendSpiCommand(0x66U, NULL, 0U);
+  tx_thread_sleep(1U);
+
+  COB_PsramTestStage = 17U;
+  COB_PsramSpiResetStatus = (int32_t)COB_PSRAM_SendSpiCommand(0x99U, NULL, 0U);
+  tx_thread_sleep(2U);
+
+  COB_PsramTestStage = 18U;
+  command_status = COB_PSRAM_SendSpiCommand(0x9FU, id, 6U);
+  if (command_status == HAL_OK)
+  {
+    receive_status = HAL_OK;
+  }
+  COB_PsramSpiIdCommandStatus = (int32_t)command_status;
+  COB_PsramSpiIdReceiveStatus = (int32_t)receive_status;
+  COB_PsramSpiIdWord0 = ((uint32_t)id[0] << 24) | ((uint32_t)id[1] << 16) |
+                        ((uint32_t)id[2] << 8) | (uint32_t)id[3];
+  COB_PsramSpiIdWord1 = ((uint32_t)id[4] << 8) | (uint32_t)id[5];
 }
 
 static uint32_t COB_RunFlashSelfTest(void)
@@ -688,6 +912,39 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramBeforeWord1 = 0xFFFFFFFFU;
   COB_PsramTestStage = 10U;
   COB_ProbePsramRegisters();
+  if (hxspi1.Init.MemoryType == HAL_XSPI_MEMTYPE_HYPERBUS)
+  {
+    if (COB_ProbePsramMappedMode(COB_PsramWriteWord0) != 0U)
+    {
+      COB_PsramTestErrors = 0U;
+      COB_PsramTestStage = 100U;
+      printf("PSRAM HYPERBUS TEST OK: addr=0x%08lX write=0x%08lX read=0x%08lX\r\n",
+             (unsigned long)COB_PsramMapBaseAddress,
+             (unsigned long)COB_PsramMapWriteWord0,
+             (unsigned long)COB_PsramMapReadWord0);
+      return 1U;
+    }
+
+    COB_PsramTestErrors = sizeof(write_buffer);
+    COB_PsramTestFirstBadIndex = 0U;
+    COB_PsramTestExpected = COB_PsramMapWriteWord0 & 0xFFU;
+    COB_PsramTestActual = COB_PsramMapReadWord0 & 0xFFU;
+    COB_PsramTestStage = 43U;
+    printf("PSRAM HYPERBUS TEST FAIL: map_status=%ld cfg=%ld enable=%ld disable=%ld base=0x%08lX write=0x%08lX read=0x%08lX/0x%08lX err=0x%08lX state=%lu\r\n",
+           (long)COB_PsramMapStatus,
+           (long)COB_PsramWrapStatus,
+           (long)COB_PsramEnableMapStatus,
+           (long)COB_PsramDisableMapStatus,
+           (unsigned long)COB_PsramMapBaseAddress,
+           (unsigned long)COB_PsramMapWriteWord0,
+           (unsigned long)COB_PsramMapReadWord0,
+           (unsigned long)COB_PsramMapReadWord1,
+           (unsigned long)COB_PsramXspi1ErrorCode,
+           (unsigned long)COB_PsramXspi1State);
+    return 0U;
+  }
+
+  COB_ProbePsramSpiId();
 
 #if (COB_ENABLE_PSRAM_WRITE_TEST == 0U)
   COB_PsramTestStage = 25U;
@@ -897,6 +1154,8 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramTestLastStatus = (int32_t)read_alt_after_alt_write_status;
   COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
   COB_PsramXspi1State = (uint32_t)hxspi1.State;
+
+  (void)COB_ProbePsramMappedMode(COB_PsramAltWriteWord0);
 
   printf("PSRAM DUMP READY: stage=%lu read=0x%08lX no_dqs=0x%08lX d6=0x%08lX d8=0x%08lX d10=0x%08lX last=%ld err=0x%08lX\r\n",
          (unsigned long)COB_PsramTestStage,

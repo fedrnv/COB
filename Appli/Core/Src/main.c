@@ -138,6 +138,25 @@ volatile int32_t COB_PsramTestLastStatus = 0;
 volatile int32_t COB_PsramMapStatus = 0;
 volatile int32_t COB_PsramWrapStatus = 0;
 volatile int32_t COB_PsramEnableMapStatus = 0;
+volatile int32_t COB_PsramDisableMapStatus = 0;
+volatile uint32_t COB_PsramMapBaseAddress = 0U;
+volatile uint32_t COB_PsramMapWriteWord0 = 0U;
+volatile uint32_t COB_PsramMapReadWord0 = 0U;
+volatile uint32_t COB_PsramMapReadWord1 = 0U;
+volatile int32_t COB_PsramSpiResetEnableStatus = 0;
+volatile int32_t COB_PsramSpiResetStatus = 0;
+volatile int32_t COB_PsramSpiIdCommandStatus = 0;
+volatile int32_t COB_PsramSpiIdReceiveStatus = 0;
+volatile uint32_t COB_PsramSpiIdWord0 = 0U;
+volatile uint32_t COB_PsramSpiIdWord1 = 0U;
+volatile uint32_t COB_PsramHyperAttempt = 0U;
+volatile uint32_t COB_PsramHyperLatency = 0U;
+volatile uint32_t COB_PsramHyperLatencyMode = 0U;
+volatile uint32_t COB_PsramXspi1Ccr = 0U;
+volatile uint32_t COB_PsramXspi1Tcr = 0U;
+volatile uint32_t COB_PsramXspi1Ir = 0U;
+volatile uint32_t COB_PsramXspi1Ar = 0U;
+volatile uint32_t COB_PsramXspi1Dlr = 0U;
 volatile uint32_t COB_PsramXspi1ErrorCode = 0U;
 volatile uint32_t COB_PsramXspi1State = 0U;
 volatile uint32_t COB_PsramIoStage = 0U;
@@ -468,6 +487,19 @@ static void MPU_Config(void)
   region_config.BaseAddress = 0x341F8000;
   region_config.LimitAddress = 0x341F817F;
   region_config.AttributesIndex = MPU_ATTRIBUTES_NUMBER1;
+  HAL_MPU_ConfigRegion(&region_config);
+
+  attr_config.Number = MPU_ATTRIBUTES_NUMBER2;
+  attr_config.Attributes = INNER_OUTER(MPU_NOT_CACHEABLE);
+  HAL_MPU_ConfigMemoryAttributes(&attr_config);
+
+  region_config.Number = MPU_REGION_NUMBER2;
+  region_config.BaseAddress = 0x90000000;
+  region_config.LimitAddress = 0x9FFFFFFF;
+  region_config.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  region_config.AccessPermission = MPU_REGION_ALL_RW;
+  region_config.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  region_config.AttributesIndex = MPU_ATTRIBUTES_NUMBER2;
   HAL_MPU_ConfigRegion(&region_config);
 
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);

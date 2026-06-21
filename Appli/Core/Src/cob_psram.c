@@ -25,11 +25,6 @@ extern volatile uint32_t COB_PsramXspi1State;
 #define COB_PSRAM_READ_DUMMY_CYCLES 4U
 #define COB_PSRAM_WRITE_DUMMY_CYCLES 0U
 
-static uint32_t COB_PSRAM_Instruction(uint32_t opcode)
-{
-  return ((opcode & 0xFFU) << 8) | ((~opcode) & 0xFFU);
-}
-
 static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t address,
                                              uint32_t size, uint32_t dummy_cycles,
                                              uint32_t dqs_mode)
@@ -42,17 +37,14 @@ static HAL_StatusTypeDef COB_PSRAM_CommandEx(uint32_t instruction, uint32_t addr
     return HAL_ERROR;
   }
 
-  if (HAL_XSPI_IsMemoryMapped(&hxspi1) != 0U)
-  {
-    (void)HAL_XSPI_Abort(&hxspi1);
-  }
+  (void)HAL_XSPI_Abort(&hxspi1);
 
   command.OperationType = HAL_XSPI_OPTYPE_COMMON_CFG;
   command.IOSelect = HAL_XSPI_SELECT_IO_7_0;
-  command.Instruction = COB_PSRAM_Instruction(instruction);
+  command.Instruction = instruction;
   command.InstructionMode = HAL_XSPI_INSTRUCTION_8_LINES;
-  command.InstructionWidth = HAL_XSPI_INSTRUCTION_16_BITS;
-  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_ENABLE;
+  command.InstructionWidth = HAL_XSPI_INSTRUCTION_8_BITS;
+  command.InstructionDTRMode = HAL_XSPI_INSTRUCTION_DTR_DISABLE;
   command.AddressMode = HAL_XSPI_ADDRESS_8_LINES;
   command.Address = address;
   command.AddressWidth = HAL_XSPI_ADDRESS_32_BITS;

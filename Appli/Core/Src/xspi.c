@@ -43,7 +43,7 @@ void MX_XSPI1_Init(void)
   hxspi1.Instance = XSPI1;
   hxspi1.Init.FifoThresholdByte = 1;
   hxspi1.Init.MemoryMode = HAL_XSPI_SINGLE_MEM;
-  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_APMEM;
+  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_HYPERBUS;
   hxspi1.Init.MemorySize = HAL_XSPI_SIZE_256MB;
   hxspi1.Init.ChipSelectHighTimeCycle = 1;
   hxspi1.Init.FreeRunningClock = HAL_XSPI_FREERUNCLK_DISABLE;
