@@ -21,6 +21,7 @@
 #include "eth.h"
 #include "string.h"
 /* USER CODE BEGIN Includes */
+#include "cob_config.h"
 #include "lan8742.h"
 /* USER CODE END Includes */
 
@@ -206,12 +207,7 @@ void MX_ETH1_Init(void)
   heth1.Init.RxBuffLen = 1536;
 
   /* USER CODE BEGIN MACADDRESS */
-  MACAddr[0] = 0x02;
-  MACAddr[1] = 0x00;
-  MACAddr[2] = 0x00;
-  MACAddr[3] = 0x00;
-  MACAddr[4] = 0x01;
-  MACAddr[5] = 0x88;
+  COB_Config_GetMacAddress(MACAddr);
 
   /* USER CODE END MACADDRESS */
 

@@ -1,5 +1,7 @@
 #include "cob_ethernet_exchange.h"
 
+#include "cob_config.h"
+
 #include <string.h>
 
 typedef struct {
@@ -228,6 +230,8 @@ static bool send_ram_packet(uint32_t operation_param)
 
 static void load_defaults(void)
 {
+  const COB_Config_t *config = COB_Config_Get();
+
   exchange.coefficient = (COB_CoefficientPacket_t) {
     .Id = COB_COEFF_RCV_ID,
     .Length = sizeof(exchange.coefficient),
@@ -272,8 +276,20 @@ static void load_defaults(void)
   exchange.address = (COB_AddressPacket_t) {
     .Id = COB_ADDRESS_RCV_ID,
     .Length = sizeof(exchange.address),
-    .MACAddress = {0x02U, 0x43U, 0x4FU, 0x42U, 0x00U, 0x01U},
-    .IPAddress = {192U, 168U, 1U, 50U},
+    .MACAddress = {
+      config->addresses.mac_address[0],
+      config->addresses.mac_address[1],
+      config->addresses.mac_address[2],
+      config->addresses.mac_address[3],
+      config->addresses.mac_address[4],
+      config->addresses.mac_address[5],
+    },
+    .IPAddress = {
+      config->addresses.ip_address[0],
+      config->addresses.ip_address[1],
+      config->addresses.ip_address[2],
+      config->addresses.ip_address[3],
+    },
     .IPAddressDst = {192U, 168U, 1U, 10U},
     .SendPort = 1556U,
     .IPAddressDst2 = {192U, 168U, 1U, 11U},
@@ -285,21 +301,12 @@ static void load_defaults(void)
 
   exchange.info = (COB_InfoPacket_t) {
     .Id = COB_INFO_SEND_ID,
-    .Length = sizeof(exchange.info),
-    .FirmwareVers = 0x0101U,
-    .BAW_STM32_ID = 0x3653504EUL,
-    .EEPROMID = 0x24AA02U,
-    .MCID = 0x4E365F45UL,
-    .DeviceStatus = 1U,
-    .FirmwareUpdateCnt = 1U,
-    .TempuC = 3200,
-    .TempExtSensor = 2500,
-    .Vin1 = 3300U,
-    .cpu_load = 5U,
-    .Mode = 1U,
-    .Vin2 = 5000U,
-    .TempIRSensor = 2600U,
-    .Gain = 32U,
-    .BoardConnStatus = 1U,
+    .Length = (uint16_t)sizeof(exchange.info),
+    .DeviceId = {0U, 0U, 0U},
+    .CurrentIpAddress = {0U, 0U, 0U, 0U},
+    .AdditionalSendPort = 50001U,
+    .CurrentReceivePort = 1556U,
+    .McuTemperatureCentiC = 0,
+    .CurrentStatus = 0U,
   };
 }

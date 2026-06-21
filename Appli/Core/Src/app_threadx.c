@@ -48,6 +48,7 @@
 #define COB_FLASH_THREAD_PRIORITY 10U
 #define COB_PSRAM_THREAD_PRIORITY 11U
 #define COB_FLASH_TEST_CAPACITY_BYTES (32UL * 1024UL * 1024UL)
+#define COB_ENABLE_FLASH_TEST_THREAD 0U
 #define COB_ENABLE_PSRAM_TEST_THREAD 0U
 #define COB_PSRAM_TEST_START_DELAY_TICKS (10U * TX_TIMER_TICKS_PER_SECOND)
 #define COB_ENABLE_PSRAM_REGISTER_PROBE 0U
@@ -63,17 +64,27 @@
 #define COB_PSRAM_THREAD_UNUSED
 #endif /* COB_ENABLE_PSRAM_TEST_THREAD == 0U */
 
+#if (COB_ENABLE_FLASH_TEST_THREAD == 0U)
+#define COB_FLASH_THREAD_UNUSED __attribute__((unused))
+#else
+#define COB_FLASH_THREAD_UNUSED
+#endif /* COB_ENABLE_FLASH_TEST_THREAD == 0U */
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 static TX_THREAD COB_LedThread;
+#if (COB_ENABLE_FLASH_TEST_THREAD != 0U)
 static TX_THREAD COB_FlashThread;
+#endif /* COB_ENABLE_FLASH_TEST_THREAD != 0U */
 #if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
 static TX_THREAD COB_PsramThread;
 #endif /* COB_ENABLE_PSRAM_TEST_THREAD != 0U */
 static ULONG COB_LedThreadStack[COB_LED_THREAD_STACK_SIZE / sizeof(ULONG)];
+#if (COB_ENABLE_FLASH_TEST_THREAD != 0U)
 static ULONG COB_FlashThreadStack[COB_FLASH_THREAD_STACK_SIZE / sizeof(ULONG)];
+#endif /* COB_ENABLE_FLASH_TEST_THREAD != 0U */
 #if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
 static ULONG COB_PsramThreadStack[COB_PSRAM_THREAD_STACK_SIZE / sizeof(ULONG)];
 #endif /* COB_ENABLE_PSRAM_TEST_THREAD != 0U */
@@ -185,7 +196,7 @@ extern volatile uint32_t COB_PsramXspi1Dlr;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static void COB_LedThreadEntry(ULONG thread_input);
-static void COB_FlashThreadEntry(ULONG thread_input);
+static void COB_FlashThreadEntry(ULONG thread_input) COB_FLASH_THREAD_UNUSED;
 static void COB_PsramThreadEntry(ULONG thread_input) COB_PSRAM_THREAD_UNUSED;
 static void COB_ProbeFlashJedecId(uint32_t chip_select);
 static HAL_StatusTypeDef COB_XSPI_SendSimpleCommand(uint32_t chip_select, uint32_t instruction);
@@ -226,6 +237,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                          COB_LED_THREAD_PRIORITY,
                          TX_NO_TIME_SLICE,
                          TX_AUTO_START);
+#if (COB_ENABLE_FLASH_TEST_THREAD != 0U)
   if (ret == TX_SUCCESS)
   {
     ret = tx_thread_create(&COB_FlashThread,
@@ -239,6 +251,10 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
                            TX_NO_TIME_SLICE,
                            TX_AUTO_START);
   }
+#else
+  COB_FlashTestPassed = 1U;
+  COB_FlashTestStage = 0xFFFFFFFFU;
+#endif /* COB_ENABLE_FLASH_TEST_THREAD != 0U */
 #if (COB_ENABLE_PSRAM_TEST_THREAD != 0U)
   if (ret == TX_SUCCESS)
   {

@@ -31,6 +31,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "cob_config.h"
 #include "cob_ethernet_exchange.h"
 #include <stdio.h>
 
@@ -223,25 +224,27 @@ int main(void)
   COB_MainStage = 40U;
   SystemIsolation_ETH_Config();
   COB_MainStage = 50U;
-  MX_ETH1_Init();
-  COB_MainStage = 60U;
-  COB_ETH_UpdateDebugSnapshot();
-  COB_MainStage = 61U;
-  MX_PSSI_Init();
-  COB_MainStage = 70U;
-  MX_SPI5_Init();
-  COB_MainStage = 75U;
-  MX_USART3_UART_Init();
-  COB_MainStage = 80U;
   MX_XSPI1_Init();
-  COB_MainStage = 85U;
+  COB_MainStage = 55U;
   MX_XSPI2_Init();
-  COB_MainStage = 90U;
+  COB_MainStage = 60U;
   MX_EXTMEM_MANAGER_Init();
+  COB_MainStage = 65U;
+  COB_Config_Init();
+  COB_MainStage = 70U;
+  MX_ETH1_Init();
+  COB_MainStage = 80U;
+  COB_ETH_UpdateDebugSnapshot();
+  COB_MainStage = 81U;
+  MX_PSSI_Init();
+  COB_MainStage = 90U;
+  MX_SPI5_Init();
   COB_MainStage = 95U;
+  MX_USART3_UART_Init();
+  COB_MainStage = 100U;
   /* USER CODE BEGIN 2 */
   COB_EthernetExchange_Init(NULL, NULL);
-  COB_MainStage = 100U;
+  COB_MainStage = 105U;
 
   /* USER CODE END 2 */
 

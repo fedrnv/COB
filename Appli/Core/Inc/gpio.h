@@ -29,6 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 
 /* USER CODE END Includes */
 
@@ -43,6 +44,8 @@ void COB_StatusLED_Init(void);
 void COB_StatusLED_EthernetStarting(void);
 void COB_StatusLED_EthernetReady(void);
 void COB_StatusLED_EthernetError(void);
+void COB_StatusLED_ErrorSet(bool active);
+void COB_StatusLED_ExchangeSet(bool active);
 void COB_StatusLED_BlueToggle(void);
 void COB_StatusLED_RedToggle(void);
 void COB_StatusLED_TestPassToggle(void);
