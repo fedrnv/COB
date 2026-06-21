@@ -112,6 +112,12 @@ extern volatile uint32_t COB_PsramReadAltWord1;
 extern volatile int32_t COB_PsramReadNoDqsStatus;
 extern volatile uint32_t COB_PsramReadNoDqsWord0;
 extern volatile uint32_t COB_PsramReadNoDqsWord1;
+extern volatile int32_t COB_PsramReadDummy6Status;
+extern volatile uint32_t COB_PsramReadDummy6Word0;
+extern volatile int32_t COB_PsramReadDummy8Status;
+extern volatile uint32_t COB_PsramReadDummy8Word0;
+extern volatile int32_t COB_PsramReadDummy10Status;
+extern volatile uint32_t COB_PsramReadDummy10Word0;
 extern volatile uint32_t COB_PsramWrite2Word0;
 extern volatile uint32_t COB_PsramWrite2Word1;
 extern volatile uint32_t COB_PsramRead2Word0;
@@ -595,6 +601,9 @@ static uint32_t COB_RunPsramSelfTest(void)
   uint8_t read_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_alt_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_no_dqs_buffer[sizeof(write_buffer)] = {0};
+  uint8_t read_dummy6_buffer[sizeof(write_buffer)] = {0};
+  uint8_t read_dummy8_buffer[sizeof(write_buffer)] = {0};
+  uint8_t read_dummy10_buffer[sizeof(write_buffer)] = {0};
   uint8_t read2_buffer[sizeof(write_buffer)] = {0};
   uint8_t alt_write_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_after_alt_write_buffer[sizeof(write_buffer)] = {0};
@@ -605,6 +614,9 @@ static uint32_t COB_RunPsramSelfTest(void)
   HAL_StatusTypeDef read_status;
   HAL_StatusTypeDef read_alt_status;
   HAL_StatusTypeDef read_no_dqs_status;
+  HAL_StatusTypeDef read_dummy6_status;
+  HAL_StatusTypeDef read_dummy8_status;
+  HAL_StatusTypeDef read_dummy10_status;
   HAL_StatusTypeDef read2_status;
   HAL_StatusTypeDef write_alt_status;
   HAL_StatusTypeDef read_after_alt_write_status;
@@ -701,6 +713,28 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramReadNoDqsStatus = (int32_t)read_no_dqs_status;
   COB_PsramReadNoDqsWord0 = COB_PackLe32(&read_no_dqs_buffer[0]);
   COB_PsramReadNoDqsWord1 = COB_PackLe32(&read_no_dqs_buffer[4]);
+
+  COB_PsramTestStage = 46U;
+  read_dummy6_status = COB_PSRAM_ReadWithDummy(test_address,
+                                               read_dummy6_buffer,
+                                               sizeof(read_dummy6_buffer),
+                                               6U);
+  COB_PsramReadDummy6Status = (int32_t)read_dummy6_status;
+  COB_PsramReadDummy6Word0 = COB_PackLe32(&read_dummy6_buffer[0]);
+
+  read_dummy8_status = COB_PSRAM_ReadWithDummy(test_address,
+                                               read_dummy8_buffer,
+                                               sizeof(read_dummy8_buffer),
+                                               8U);
+  COB_PsramReadDummy8Status = (int32_t)read_dummy8_status;
+  COB_PsramReadDummy8Word0 = COB_PackLe32(&read_dummy8_buffer[0]);
+
+  read_dummy10_status = COB_PSRAM_ReadWithDummy(test_address,
+                                                read_dummy10_buffer,
+                                                sizeof(read_dummy10_buffer),
+                                                10U);
+  COB_PsramReadDummy10Status = (int32_t)read_dummy10_status;
+  COB_PsramReadDummy10Word0 = COB_PackLe32(&read_dummy10_buffer[0]);
 
   COB_PsramTestStage = 50U;
   write2_status = COB_PSRAM_Write(test_address, write2_buffer, sizeof(write2_buffer));
