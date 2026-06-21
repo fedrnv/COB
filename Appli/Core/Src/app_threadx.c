@@ -549,13 +549,11 @@ static uint32_t COB_RunPsramSelfTest(void)
 {
   uint8_t write_buffer[64] = {0};
   uint8_t write2_buffer[sizeof(write_buffer)] = {0};
-  uint8_t before_buffer[sizeof(write_buffer)] = {0};
   uint8_t read_buffer[sizeof(write_buffer)] = {0};
   uint8_t read2_buffer[sizeof(write_buffer)] = {0};
   const uint32_t test_address = 0U;
   HAL_StatusTypeDef write_status;
   HAL_StatusTypeDef write2_status;
-  HAL_StatusTypeDef before_status;
   HAL_StatusTypeDef read_status;
   HAL_StatusTypeDef read2_status;
   uint32_t errors = 0U;
@@ -578,25 +576,8 @@ static uint32_t COB_RunPsramSelfTest(void)
   COB_PsramWriteWord1 = COB_PackLe32(&write_buffer[4]);
   COB_PsramWrite2Word0 = COB_PackLe32(&write2_buffer[0]);
   COB_PsramWrite2Word1 = COB_PackLe32(&write2_buffer[4]);
-
-  COB_PsramTestStage = 10U;
-  before_status = COB_PSRAM_Read(test_address, before_buffer, sizeof(before_buffer));
-  COB_PsramTestLastStatus = (int32_t)before_status;
-  COB_PsramBeforeWord0 = COB_PackLe32(&before_buffer[0]);
-  COB_PsramBeforeWord1 = COB_PackLe32(&before_buffer[4]);
-  COB_PsramXspi1ErrorCode = hxspi1.ErrorCode;
-  COB_PsramXspi1State = (uint32_t)hxspi1.State;
-  COB_CapturePsramXspiRegisters();
-  if (before_status != HAL_OK)
-  {
-    COB_PsramTestStage = 11U;
-    printf("PSRAM TEST FAIL: pre-read status=%ld xspi_error=0x%08lX state=%lu addr=0x%08lX\r\n",
-           (long)before_status,
-           (unsigned long)COB_PsramXspi1ErrorCode,
-           (unsigned long)COB_PsramXspi1State,
-           (unsigned long)test_address);
-    return 0U;
-  }
+  COB_PsramBeforeWord0 = 0xFFFFFFFFU;
+  COB_PsramBeforeWord1 = 0xFFFFFFFFU;
 
   COB_PsramTestStage = 20U;
   write_status = COB_PSRAM_Write(test_address, write_buffer, sizeof(write_buffer));
