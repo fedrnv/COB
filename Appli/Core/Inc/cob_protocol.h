@@ -10,6 +10,7 @@
 #define COB_ADDRESS_RCV_ID           4U
 #define COB_OPERATION_RCV_ID         5U
 #define COB_NOT_RCV_ID               6U
+#define COB_SUBSCRIPTION_RCV_ID      7U
 
 #define COB_DATA_SEND_ID             0U
 #define COB_ASCAN_SEND_ID            1U
@@ -17,10 +18,18 @@
 #define COB_CONTROL_ECHO_ID          3U
 #define COB_ADDRESS_ECHO_ID          4U
 #define COB_OPERATION_ECHO_ID        5U
-#define COB_INFO_SEND_ID             6U
+#define COB_PING_SEND_ID             6U
+#define COB_SUBSCRIPTION_ACK_ID      7U
+#define COB_INFO_SEND_ID             8U
 #define COB_COEFF_BACK_ID            11U
 #define COB_CONTROL_BACK_ID          12U
 #define COB_ADDRESS_BACK_ID          13U
+
+#define COB_SUBSCRIPTION_ACK_REJECTED 0U
+#define COB_SUBSCRIPTION_ACK_ACCEPTED 1U
+
+#define COB_SUBSCRIPTION_ERROR_NONE      0U
+#define COB_SUBSCRIPTION_ERROR_MAX_COUNT 1U
 
 #define COB_OPERATION_READ_RAM       1U
 #define COB_OPERATION_READ_FLASH     2U

@@ -10,8 +10,9 @@ be documented here in the same change set.
 - IP stack: NetX Duo.
 - Application transport: UDP.
 - Command receive UDP port: 1556.
-- Info broadcast UDP port: 50101.
-- Default additional send UDP port announced in info packet: 50001.
+- Ping broadcast UDP port: 50101.
+- Subscription info destination: IP address and UDP port received in
+  `COB_SubscriptionPacket_t`.
 - Application packet byte order: native MCU little-endian for integer fields.
 - Packet layout: packed C structs, no padding between fields.
 - Common header size: 6 bytes.
@@ -20,13 +21,15 @@ The device acts as a UDP server for command exchange: it listens on the command
 receive port and does not require a persistent connection. Command responses are
 sent to the source IPv4 address and UDP port of the received datagram.
 
-The device also sends an unconditional info broadcast packet every 3 seconds to
-`255.255.255.255:50101`.
+The device sends a ping broadcast packet every 3 seconds to
+`255.255.255.255:50101` while there are no active subscriptions. After at least
+one subscription is active, ping broadcast is stopped and info packets are sent
+to active subscription addresses once per second instead.
 
 Current default board IPv4 address is `192.168.1.188/24`.
 
-Current default MAC address is generated from the STM32 UID as
-`02:FD:<UID[31:24]>:<UID[23:16]>:<UID[15:8]>:<UID[7:0]>`.
+Current default MAC address is generated as `02:FD:<hash32 bytes>`, where
+`hash32` is FNV-1a over the STM32 96-bit UID.
 
 Current firmware RX buffer limit is 512 bytes per UDP datagram. Larger datagrams
 are dropped before protocol parsing.
@@ -43,19 +46,22 @@ The current firmware uses four status LED channels:
 | --- | --- | --- |
 | 3 | Red error | Turns on on Ethernet/UDP/runtime exchange errors. Turns off again after a healthy Ethernet link/status cycle. |
 | 5 | Green exchange | Turns on after Ethernet/UDP initialization succeeds. Turns off when initialization/link is lost. |
-| 5 | Green activity pulse | Turns off for 0.2 seconds after every sent info broadcast packet and after every received host UDP datagram. |
+| 5 | Green activity pulse | Turns off for 0.1 seconds on packet activity, rate-limited to one pulse per 0.3 seconds. |
 | 6 | Mode | Reserved for future mode indication. |
 | 7 | Mode | Reserved for future mode indication. |
 
 ## Exchange Flow
 
-1. Device broadcasts `COB_InfoPacket_t` to UDP port 50101 every 3 seconds.
-2. Host sends one COB command packet to board UDP port 1556.
+1. Device broadcasts `COB_PingPacket_t` to UDP port 50101 every 3 seconds until
+   at least one subscription is active.
+2. Host sends one COB command or subscription packet to board UDP port 1556.
 3. Firmware extracts the source IPv4 address and source UDP port from the
    datagram metadata.
 4. Firmware parses the packet by `Id`.
 5. If the command requires an acknowledgment or data response, firmware sends
    response packet(s) back to the datagram source.
+6. If a subscription is accepted, firmware sends `COB_InfoPacket_t` to each
+   subscribed IP address and port once per second.
 
 ## Common Header
 
@@ -78,6 +84,7 @@ All packets start with:
 | 4 | `COB_ADDRESS_RCV_ID` | `COB_AddressPacket_t` |
 | 5 | `COB_OPERATION_RCV_ID` | `COB_OperationPacket_t` |
 | 6 | `COB_NOT_RCV_ID` | No-operation packet. |
+| 7 | `COB_SUBSCRIPTION_RCV_ID` | `COB_SubscriptionPacket_t` |
 
 ## Send Packet IDs
 
@@ -89,7 +96,9 @@ All packets start with:
 | 3 | `COB_CONTROL_ECHO_ID` | `COB_ControlEchoPacket_t` |
 | 4 | `COB_ADDRESS_ECHO_ID` | `COB_AddressEchoPacket_t` |
 | 5 | `COB_OPERATION_ECHO_ID` | `COB_OperationEchoPacket_t` |
-| 6 | `COB_INFO_SEND_ID` | `COB_InfoPacket_t`, broadcast heartbeat. |
+| 6 | `COB_PING_SEND_ID` | `COB_PingPacket_t`, broadcast ping. |
+| 7 | `COB_SUBSCRIPTION_ACK_ID` | `COB_SubscriptionAckPacket_t` |
+| 8 | `COB_INFO_SEND_ID` | `COB_InfoPacket_t`, unicast subscription info. |
 | 11 | `COB_COEFF_BACK_ID` | `COB_CoefficientPacket_t` |
 | 12 | `COB_CONTROL_BACK_ID` | `COB_ControlPacket_t` |
 | 13 | `COB_ADDRESS_BACK_ID` | `COB_AddressPacket_t` |
@@ -171,24 +180,71 @@ All packets start with:
 | `OperationType` | `uint8_t` | Operation command. |
 | `OperationParam` | `uint32_t` | Operation parameter. |
 
+### `COB_PingPacket_t`
+
+This packet is sent every 3 seconds as UDP broadcast to port 50101 while there
+are no active subscriptions.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `Id` | `uint16_t` | Must be `COB_PING_SEND_ID`. |
+| `Index` | `uint16_t` | Ping packet sequence index. |
+| `Length` | `uint16_t` | `sizeof(COB_PingPacket_t)`. |
+| `DeviceId` | `uint32_t[3]` | STM32 96-bit unique device ID: `HAL_GetUIDw0/1/2`. |
+| `CurrentIpAddress` | `uint8_t[4]` | Current board IPv4 address in human byte order. |
+| `CurrentReceivePort` | `uint16_t` | Current command receive port. Default: 1556. |
+| `PingBroadcastPort` | `uint16_t` | UDP port used for this ping broadcast. Default: 50101. |
+| `McuTemperatureCentiC` | `int16_t` | MCU temperature in 0.01 deg C units. Currently `0` until ADC temperature measurement is connected. |
+| `CurrentStatus` | `uint16_t` | Current status. Currently only `0` is defined. |
+| `Version` | `uint32_t` | Firmware version. Currently always `0x00000001`, displayed as `0.0.0.1`. |
+| `Config` | `uint32_t` | Configuration format/version. Currently always `0x00000001`, displayed as `0.0.0.1`. |
+
+### `COB_SubscriptionPacket_t`
+
+This packet creates a RAM-only subscription. Subscriptions are not saved to
+flash and are cleared by reboot. Up to three unique IP:port pairs can be active.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `Id` | `uint16_t` | Must be `COB_SUBSCRIPTION_RCV_ID`. |
+| `Index` | `uint16_t` | Packet sequence index. |
+| `Length` | `uint16_t` | `sizeof(COB_SubscriptionPacket_t)`. |
+| `IPAddress` | `uint8_t[4]` | Destination IPv4 address for info packets in human byte order. |
+| `Port` | `uint16_t` | Destination UDP port for info packets. |
+
+### `COB_SubscriptionAckPacket_t`
+
+This packet is sent back to the source IPv4 address and source UDP port of the
+subscription datagram.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `Id` | `uint16_t` | Must be `COB_SUBSCRIPTION_ACK_ID`. |
+| `Index` | `uint16_t` | Ack packet sequence index. |
+| `Length` | `uint16_t` | `sizeof(COB_SubscriptionAckPacket_t)`. |
+| `Status` | `uint8_t` | `1` accepted, `0` rejected. |
+| `ErrorCode` | `uint8_t` | `0` none, `1` maximum subscription count exceeded. |
+| `SubscriptionCount` | `uint8_t` | Current active subscription count. |
+| `Reserved` | `uint8_t` | Reserved, always `0`. |
+
 ### `COB_InfoPacket_t`
 
-This packet is sent unconditionally every 3 seconds as UDP broadcast to port
-50101.
+This packet is sent once per second to each active subscription while at least
+one subscription is active.
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `Id` | `uint16_t` | Must be `COB_INFO_SEND_ID`. |
 | `Index` | `uint16_t` | Info packet sequence index. |
 | `Length` | `uint16_t` | `sizeof(COB_InfoPacket_t)`. |
-| `DeviceId` | `uint32_t[3]` | STM32 96-bit unique device ID: `HAL_GetUIDw0/1/2`. |
-| `CurrentIpAddress` | `uint8_t[4]` | Current board IPv4 address in human byte order. |
-| `AdditionalSendPort` | `uint16_t` | Additional send port announced by the device. Default: 50001. |
-| `CurrentReceivePort` | `uint16_t` | Current command receive port. Default: 1556. |
-| `McuTemperatureCentiC` | `int16_t` | MCU temperature in 0.01 deg C units. Currently `0` until ADC temperature measurement is connected. |
-| `CurrentStatus` | `uint16_t` | Current status. Currently only `0` is defined. |
-| `Version` | `uint32_t` | Firmware version. Currently always `0x00000001`, displayed as `0.0.0.1`. |
-| `Config` | `uint32_t` | Configuration format/version. Currently always `0x00000001`, displayed as `0.0.0.1`. |
+| `DeviceId` | `uint32_t` | 32-bit FNV-1a hash over the STM32 96-bit UID. |
+| `DeviceType` | `uint8_t` | Device type. Currently always `1`. |
+| `DeviceStatus` | `uint8_t` | Device status. Currently always `101`. |
+| `ErrorCode` | `uint8_t` | Error code. Currently always `0`. |
+| `SubscriptionCount` | `uint8_t` | Current active subscription count. |
+| `TemperatureCentiC` | `int16_t` | Temperature in 0.01 deg C units. Currently `0`. |
+| `Reserved` | `uint16_t` | Reserved, always `0`. |
+| `SentInfoCounter` | `uint32_t` | Count of successfully sent info packets including this packet. |
 
 ### Echo Packets
 

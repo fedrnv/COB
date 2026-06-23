@@ -138,14 +138,12 @@ void COB_StatusLED_RedToggle(void)
 void COB_StatusLED_TestPassToggle(void)
 {
   COB_StatusLED_ErrorSet(false);
-  COB_StatusLED_ExchangeSet(false);
   COB_StatusLED_BlueToggle();
 }
 
 void COB_StatusLED_TestFailToggle(void)
 {
   HAL_GPIO_WritePin(COB_LED_MODE6_PORT, COB_LED_MODE6_PIN, COB_LED_OFF);
-  COB_StatusLED_ExchangeSet(false);
   COB_StatusLED_RedToggle();
 }
 

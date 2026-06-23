@@ -28,10 +28,17 @@
 #include "eth.h"
 #include "gpio.h"
 
+#include <string.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct {
+  ULONG ip_address;
+  UINT port;
+  bool active;
+} COB_NetXSubscription_t;
 
 /* USER CODE END PTD */
 
@@ -45,16 +52,20 @@
 #define COB_NETX_IP_STACK_SIZE     2048U
 #define COB_NETX_STATUS_STACK_SIZE 1024U
 #define COB_NETX_EXCHANGE_STACK_SIZE 2048U
-#define COB_NETX_LINK_TIMEOUT      TX_NO_WAIT
+#define COB_NETX_LINK_TIMEOUT      (5U * TX_TIMER_TICKS_PER_SECOND)
 #define COB_NETX_STATUS_PERIOD     (TX_TIMER_TICKS_PER_SECOND / 10U)
 #define COB_NETX_REINIT_PERIOD     (TX_TIMER_TICKS_PER_SECOND / 2U)
 #define COB_NETX_EXCHANGE_RX_TIMEOUT (TX_TIMER_TICKS_PER_SECOND / 10U)
-#define COB_NETX_ACTIVITY_PULSE_PERIOD (TX_TIMER_TICKS_PER_SECOND / 5U)
-#define COB_NETX_GRATUITOUS_ARP_PERIOD (1U * TX_TIMER_TICKS_PER_SECOND)
-#define COB_NETX_INFO_PERIOD       (3U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_NETX_ACTIVITY_OFF_PERIOD (TX_TIMER_TICKS_PER_SECOND / 10U)
+#define COB_NETX_ACTIVITY_MIN_PERIOD ((3U * TX_TIMER_TICKS_PER_SECOND) / 10U)
+#define COB_NETX_GRATUITOUS_ARP_STARTUP_COUNT 3U
+#define COB_NETX_GRATUITOUS_ARP_STARTUP_PERIOD (1U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_NETX_GRATUITOUS_ARP_STEADY_PERIOD (60U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_NETX_PING_PERIOD       (3U * TX_TIMER_TICKS_PER_SECOND)
+#define COB_NETX_INFO_PERIOD       (1U * TX_TIMER_TICKS_PER_SECOND)
 #define COB_NETX_EXCHANGE_PORT     1556U
-#define COB_NETX_ADDITIONAL_SEND_PORT 50001U
-#define COB_NETX_INFO_PORT         50101U
+#define COB_NETX_PING_PORT         50101U
+#define COB_NETX_MAX_SUBSCRIPTIONS 3U
 #define COB_NETX_EXCHANGE_RX_SIZE  512U
 #define COB_NETX_FIRMWARE_VERSION  0x00000001UL
 #define COB_NETX_CONFIG_VERSION    0x00000001UL
@@ -78,17 +89,22 @@ static UCHAR *cob_exchange_stack_memory;
 static TX_THREAD cob_status_thread;
 static TX_THREAD cob_exchange_thread;
 static NX_UDP_SOCKET cob_exchange_socket;
-static NX_UDP_SOCKET cob_info_socket;
+static NX_UDP_SOCKET cob_ping_socket;
 static ULONG cob_exchange_peer_ip;
 static UINT cob_exchange_peer_port;
 static uint8_t cob_exchange_rx_buffer[COB_NETX_EXCHANGE_RX_SIZE];
+static COB_NetXSubscription_t cob_subscriptions[COB_NETX_MAX_SUBSCRIPTIONS];
+static uint16_t cob_ping_tx_index;
+static uint16_t cob_subscription_ack_tx_index;
 static uint16_t cob_info_tx_index;
+static uint32_t cob_info_tx_counter;
 static volatile bool cob_netx_ready;
-static volatile ULONG cob_exchange_led_pulse_ticks;
+static volatile ULONG cob_exchange_led_off_ticks;
+static volatile ULONG cob_exchange_led_cooldown_ticks;
 static bool cob_packet_pool_created;
 static bool cob_ip_created;
 static bool cob_exchange_socket_created;
-static bool cob_info_socket_created;
+static bool cob_ping_socket_created;
 volatile ULONG COB_NX_LinkStatus = 0U;
 volatile ULONG COB_NX_IpAddress = 0U;
 volatile ULONG COB_NX_NetworkMask = 0U;
@@ -124,6 +140,12 @@ volatile ULONG COB_NX_ExchangeLastPeerPort = 0U;
 volatile ULONG COB_NX_ExchangeLastPeerAddressIndex = 0U;
 volatile ULONG COB_NX_ExchangeLastRxLength = 0U;
 volatile ULONG COB_NX_ExchangeLastTxLength = 0U;
+volatile ULONG COB_NX_PingPacketsSent = 0U;
+volatile ULONG COB_NX_PingPacketsDropped = 0U;
+volatile ULONG COB_NX_PingLastStatus = 0U;
+volatile ULONG COB_NX_SubscriptionCount = 0U;
+volatile ULONG COB_NX_SubscriptionAccepted = 0U;
+volatile ULONG COB_NX_SubscriptionRejected = 0U;
 volatile ULONG COB_NX_InfoPacketsSent = 0U;
 volatile ULONG COB_NX_InfoPacketsDropped = 0U;
 volatile ULONG COB_NX_InfoLastStatus = 0U;
@@ -139,10 +161,16 @@ static bool COB_NetXExchangeSend(const uint8_t *payload, uint16_t length, void *
 static UINT COB_NetXInitializeNetwork(void);
 static void COB_NetXDeinitializeNetwork(void);
 static void COB_NetXUpdateDebugCounters(void);
-static bool COB_NetXBroadcastInfo(void);
+static bool COB_NetXBroadcastPing(void);
+static bool COB_NetXHandleSubscriptionPacket(const uint8_t *payload, uint16_t length);
+static bool COB_NetXSendSubscriptionAck(uint8_t status, uint8_t error_code);
+static uint8_t COB_NetXGetSubscriptionCount(void);
+static bool COB_NetXSendInfoToSubscriptions(void);
 static bool COB_NetXSendUdpPacket(NX_UDP_SOCKET *socket, const uint8_t *payload,
                                   uint16_t length, ULONG ip_address, UINT port);
+static void COB_NetXFillPingPacket(COB_PingPacket_t *packet);
 static void COB_NetXFillInfoPacket(COB_InfoPacket_t *packet);
+static uint32_t COB_NetXGetDeviceId32(void);
 static int16_t COB_NetXReadMcuTemperatureCentiC(void);
 static void COB_NetXExchangeActivityPulse(void);
 static void COB_NetXUpdateExchangeLed(ULONG elapsed_ticks);
@@ -249,7 +277,13 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
 {
   ULONG actual_status;
   ULONG ticks_since_gratuitous_arp = 0U;
+  ULONG gratuitous_arp_sent_count = 0U;
+  ULONG ticks_since_ping = COB_NETX_PING_PERIOD;
   ULONG ticks_since_info = COB_NETX_INFO_PERIOD;
+  ULONG gratuitous_arp_period;
+  ULONG last_ip_packets_sent = 0U;
+  ULONG last_ip_packets_received = 0U;
+  bool packet_counters_valid = false;
   UINT status;
 
   (void)initial_input;
@@ -263,9 +297,13 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
       if (status == NX_SUCCESS)
       {
         cob_netx_ready = true;
+        ticks_since_ping = COB_NETX_PING_PERIOD;
         ticks_since_info = COB_NETX_INFO_PERIOD;
-        ticks_since_gratuitous_arp = 0U;
-        cob_exchange_led_pulse_ticks = 0U;
+        ticks_since_gratuitous_arp = COB_NETX_GRATUITOUS_ARP_STARTUP_PERIOD;
+        gratuitous_arp_sent_count = 0U;
+        packet_counters_valid = false;
+        cob_exchange_led_off_ticks = 0U;
+        cob_exchange_led_cooldown_ticks = 0U;
         COB_StatusLED_ErrorSet(false);
         COB_StatusLED_ExchangeSet(true);
       }
@@ -284,7 +322,9 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     {
       COB_NX_LinkStatus = 0U;
       cob_netx_ready = false;
-      cob_exchange_led_pulse_ticks = 0U;
+      packet_counters_valid = false;
+      cob_exchange_led_off_ticks = 0U;
+      cob_exchange_led_cooldown_ticks = 0U;
       COB_StatusLED_ErrorSet(true);
       COB_StatusLED_ExchangeSet(false);
       tx_thread_sleep(COB_NETX_EXCHANGE_RX_TIMEOUT);
@@ -296,21 +336,50 @@ static VOID COB_NetXStatusThread(ULONG initial_input)
     COB_NX_LinkStatus = actual_status;
     COB_StatusLED_ErrorSet(false);
     COB_NetXUpdateDebugCounters();
+    if (packet_counters_valid)
+    {
+      if ((COB_NX_IpPacketsSent != last_ip_packets_sent) ||
+          (COB_NX_IpPacketsReceived != last_ip_packets_received))
+      {
+        COB_NetXExchangeActivityPulse();
+      }
+    }
+    last_ip_packets_sent = COB_NX_IpPacketsSent;
+    last_ip_packets_received = COB_NX_IpPacketsReceived;
+    packet_counters_valid = true;
     COB_NetXUpdateExchangeLed(COB_NETX_STATUS_PERIOD);
 
-    if (ticks_since_info >= COB_NETX_INFO_PERIOD)
+    if (COB_NetXGetSubscriptionCount() == 0U)
     {
-      (void)COB_NetXBroadcastInfo();
-      ticks_since_info = 0U;
+      if (ticks_since_ping >= COB_NETX_PING_PERIOD)
+      {
+        (void)COB_NetXBroadcastPing();
+        ticks_since_ping = 0U;
+      }
+      ticks_since_info = COB_NETX_INFO_PERIOD;
+    }
+    else
+    {
+      if (ticks_since_info >= COB_NETX_INFO_PERIOD)
+      {
+        (void)COB_NetXSendInfoToSubscriptions();
+        ticks_since_info = 0U;
+      }
+      ticks_since_ping = 0U;
     }
 
     ticks_since_gratuitous_arp += COB_NETX_STATUS_PERIOD;
-    if (ticks_since_gratuitous_arp >= COB_NETX_GRATUITOUS_ARP_PERIOD)
+    gratuitous_arp_period = (gratuitous_arp_sent_count < COB_NETX_GRATUITOUS_ARP_STARTUP_COUNT) ?
+                            COB_NETX_GRATUITOUS_ARP_STARTUP_PERIOD :
+                            COB_NETX_GRATUITOUS_ARP_STEADY_PERIOD;
+    if (ticks_since_gratuitous_arp >= gratuitous_arp_period)
     {
       (void)nx_arp_gratuitous_send(&cob_ip, NX_NULL);
+      gratuitous_arp_sent_count++;
       ticks_since_gratuitous_arp = 0U;
     }
 
+    ticks_since_ping += COB_NETX_STATUS_PERIOD;
     ticks_since_info += COB_NETX_STATUS_PERIOD;
     tx_thread_sleep(COB_NETX_STATUS_PERIOD);
   }
@@ -357,8 +426,6 @@ static VOID COB_NetXExchangeThread(ULONG initial_input)
       COB_StatusLED_ErrorSet(true);
       continue;
     }
-    COB_NetXExchangeActivityPulse();
-
     cob_exchange_peer_ip = peer_ip;
     cob_exchange_peer_port = peer_port;
     COB_NX_ExchangeLastPeerIp = peer_ip;
@@ -391,6 +458,27 @@ static VOID COB_NetXExchangeThread(ULONG initial_input)
 
     COB_NX_ExchangePacketsReceived++;
     COB_NX_ExchangeLastRxLength = bytes_copied;
+    COB_NetXExchangeActivityPulse();
+    if (bytes_copied >= sizeof(COB_Header_t))
+    {
+      COB_Header_t header;
+
+      memcpy(&header, cob_exchange_rx_buffer, sizeof(header));
+      if (header.Id == COB_SUBSCRIPTION_RCV_ID)
+      {
+        if (COB_NetXHandleSubscriptionPacket(cob_exchange_rx_buffer, (uint16_t)bytes_copied))
+        {
+          COB_NX_ExchangePacketsProcessed++;
+        }
+        else
+        {
+          COB_NX_ExchangePacketsDropped++;
+          COB_StatusLED_ErrorSet(true);
+        }
+        continue;
+      }
+    }
+
     if (COB_EthernetExchange_ProcessPacket(cob_exchange_rx_buffer, (uint16_t)bytes_copied))
     {
       COB_NX_ExchangePacketsProcessed++;
@@ -422,6 +510,7 @@ static bool COB_NetXExchangeSend(const uint8_t *payload, uint16_t length, void *
   {
     COB_NX_ExchangePacketsSent++;
     COB_NX_ExchangeLastTxLength = length;
+    COB_NetXExchangeActivityPulse();
     return true;
   }
 
@@ -514,28 +603,28 @@ static UINT COB_NetXInitializeNetwork(void)
     cob_exchange_socket_created = true;
   }
 
-  if (!cob_info_socket_created)
+  if (!cob_ping_socket_created)
   {
-    status = nx_udp_socket_create(&cob_ip, &cob_info_socket, "COB Info",
+    status = nx_udp_socket_create(&cob_ip, &cob_ping_socket, "COB Ping",
                                   NX_IP_NORMAL, NX_FRAGMENT_OKAY, NX_IP_TIME_TO_LIVE, 1U);
     COB_NX_LastStatus = status;
-    COB_NX_InfoLastStatus = status;
+    COB_NX_PingLastStatus = status;
     if (status != NX_SUCCESS)
     {
       COB_NX_InitStage = 58U;
       return status;
     }
 
-    status = nx_udp_socket_bind(&cob_info_socket, NX_ANY_PORT, TX_NO_WAIT);
+    status = nx_udp_socket_bind(&cob_ping_socket, NX_ANY_PORT, TX_NO_WAIT);
     COB_NX_LastStatus = status;
-    COB_NX_InfoLastStatus = status;
+    COB_NX_PingLastStatus = status;
     if (status != NX_SUCCESS)
     {
       COB_NX_InitStage = 59U;
-      (void)nx_udp_socket_delete(&cob_info_socket);
+      (void)nx_udp_socket_delete(&cob_ping_socket);
       return status;
     }
-    cob_info_socket_created = true;
+    cob_ping_socket_created = true;
   }
 
   COB_NetXUpdateDebugCounters();
@@ -545,11 +634,11 @@ static UINT COB_NetXInitializeNetwork(void)
 
 static void COB_NetXDeinitializeNetwork(void)
 {
-  if (cob_info_socket_created)
+  if (cob_ping_socket_created)
   {
-    (void)nx_udp_socket_unbind(&cob_info_socket);
-    (void)nx_udp_socket_delete(&cob_info_socket);
-    cob_info_socket_created = false;
+    (void)nx_udp_socket_unbind(&cob_ping_socket);
+    (void)nx_udp_socket_delete(&cob_ping_socket);
+    cob_ping_socket_created = false;
   }
 
   if (cob_exchange_socket_created)
@@ -617,11 +706,155 @@ static void COB_NetXUpdateDebugCounters(void)
                          (ULONG *)&COB_NX_IcmpUnhandledMessages);
 }
 
-static bool COB_NetXBroadcastInfo(void)
+static bool COB_NetXBroadcastPing(void)
 {
-  COB_InfoPacket_t info_packet;
+  COB_PingPacket_t ping_packet;
 
-  if (!cob_netx_ready || !cob_info_socket_created)
+  if (!cob_netx_ready || !cob_ping_socket_created)
+  {
+    COB_NX_PingLastStatus = NX_NOT_SUCCESSFUL;
+    COB_NX_PingPacketsDropped++;
+    COB_StatusLED_ErrorSet(true);
+    return false;
+  }
+
+  COB_NetXFillPingPacket(&ping_packet);
+  if (COB_NetXSendUdpPacket(&cob_ping_socket, (const uint8_t *)&ping_packet,
+                            sizeof(ping_packet), NX_IP_LIMITED_BROADCAST,
+                            COB_NETX_PING_PORT))
+  {
+    COB_NX_PingPacketsSent++;
+    COB_NX_PingLastStatus = NX_SUCCESS;
+    COB_NetXExchangeActivityPulse();
+    return true;
+  }
+
+  COB_NX_PingLastStatus = COB_NX_ExchangeLastStatus;
+  COB_NX_PingPacketsDropped++;
+  COB_StatusLED_ErrorSet(true);
+  return false;
+}
+
+static bool COB_NetXHandleSubscriptionPacket(const uint8_t *payload, uint16_t length)
+{
+  COB_SubscriptionPacket_t subscription;
+  ULONG ip_address;
+  uint8_t count;
+  uint8_t free_index = COB_NETX_MAX_SUBSCRIPTIONS;
+
+  if ((payload == NULL) || (length < sizeof(subscription)))
+  {
+    return false;
+  }
+
+  memcpy(&subscription, payload, sizeof(subscription));
+  if (subscription.Port == 0U)
+  {
+    return false;
+  }
+
+  ip_address = ((ULONG)subscription.IPAddress[0] << 24) |
+               ((ULONG)subscription.IPAddress[1] << 16) |
+               ((ULONG)subscription.IPAddress[2] << 8) |
+               (ULONG)subscription.IPAddress[3];
+  if (ip_address == 0U)
+  {
+    return false;
+  }
+
+  for (uint8_t i = 0U; i < COB_NETX_MAX_SUBSCRIPTIONS; i++)
+  {
+    if (cob_subscriptions[i].active)
+    {
+      if ((cob_subscriptions[i].ip_address == ip_address) &&
+          (cob_subscriptions[i].port == subscription.Port))
+      {
+        COB_NX_SubscriptionAccepted++;
+        return COB_NetXSendSubscriptionAck(COB_SUBSCRIPTION_ACK_ACCEPTED,
+                                           COB_SUBSCRIPTION_ERROR_NONE);
+      }
+    }
+    else if (free_index == COB_NETX_MAX_SUBSCRIPTIONS)
+    {
+      free_index = i;
+    }
+  }
+
+  count = COB_NetXGetSubscriptionCount();
+  if ((count >= COB_NETX_MAX_SUBSCRIPTIONS) || (free_index >= COB_NETX_MAX_SUBSCRIPTIONS))
+  {
+    COB_NX_SubscriptionRejected++;
+    return COB_NetXSendSubscriptionAck(COB_SUBSCRIPTION_ACK_REJECTED,
+                                       COB_SUBSCRIPTION_ERROR_MAX_COUNT);
+  }
+
+  cob_subscriptions[free_index].ip_address = ip_address;
+  cob_subscriptions[free_index].port = subscription.Port;
+  cob_subscriptions[free_index].active = true;
+  COB_NX_SubscriptionCount = COB_NetXGetSubscriptionCount();
+  COB_NX_SubscriptionAccepted++;
+
+  return COB_NetXSendSubscriptionAck(COB_SUBSCRIPTION_ACK_ACCEPTED,
+                                     COB_SUBSCRIPTION_ERROR_NONE);
+}
+
+static bool COB_NetXSendSubscriptionAck(uint8_t status, uint8_t error_code)
+{
+  COB_SubscriptionAckPacket_t ack = {
+    .Id = COB_SUBSCRIPTION_ACK_ID,
+    .Index = cob_subscription_ack_tx_index,
+    .Length = (uint16_t)sizeof(ack),
+    .Status = status,
+    .ErrorCode = error_code,
+    .SubscriptionCount = COB_NetXGetSubscriptionCount(),
+    .Reserved = 0U,
+  };
+
+  if (!cob_netx_ready || !cob_exchange_socket_created ||
+      (cob_exchange_peer_ip == 0U) || (cob_exchange_peer_port == 0U))
+  {
+    COB_NX_ExchangePacketsDropped++;
+    COB_StatusLED_ErrorSet(true);
+    return false;
+  }
+
+  if (COB_NetXSendUdpPacket(&cob_exchange_socket, (const uint8_t *)&ack,
+                            sizeof(ack), cob_exchange_peer_ip, cob_exchange_peer_port))
+  {
+    cob_subscription_ack_tx_index++;
+    COB_NX_ExchangePacketsSent++;
+    COB_NX_ExchangeLastTxLength = sizeof(ack);
+    COB_NetXExchangeActivityPulse();
+    return true;
+  }
+
+  COB_NX_ExchangePacketsDropped++;
+  COB_StatusLED_ErrorSet(true);
+  return false;
+}
+
+static uint8_t COB_NetXGetSubscriptionCount(void)
+{
+  uint8_t count = 0U;
+
+  for (uint8_t i = 0U; i < COB_NETX_MAX_SUBSCRIPTIONS; i++)
+  {
+    if (cob_subscriptions[i].active)
+    {
+      count++;
+    }
+  }
+
+  COB_NX_SubscriptionCount = count;
+  return count;
+}
+
+static bool COB_NetXSendInfoToSubscriptions(void)
+{
+  bool sent_any = false;
+  uint8_t subscription_count;
+
+  if (!cob_netx_ready || !cob_ping_socket_created)
   {
     COB_NX_InfoLastStatus = NX_NOT_SUCCESSFUL;
     COB_NX_InfoPacketsDropped++;
@@ -629,21 +862,41 @@ static bool COB_NetXBroadcastInfo(void)
     return false;
   }
 
-  COB_NetXFillInfoPacket(&info_packet);
-  if (COB_NetXSendUdpPacket(&cob_info_socket, (const uint8_t *)&info_packet,
-                            sizeof(info_packet), NX_IP_LIMITED_BROADCAST,
-                            COB_NETX_INFO_PORT))
+  subscription_count = COB_NetXGetSubscriptionCount();
+  if (subscription_count == 0U)
   {
-    COB_NX_InfoPacketsSent++;
-    COB_NX_InfoLastStatus = NX_SUCCESS;
-    COB_NetXExchangeActivityPulse();
-    return true;
+    return false;
   }
 
-  COB_NX_InfoLastStatus = COB_NX_ExchangeLastStatus;
-  COB_NX_InfoPacketsDropped++;
-  COB_StatusLED_ErrorSet(true);
-  return false;
+  for (uint8_t i = 0U; i < COB_NETX_MAX_SUBSCRIPTIONS; i++)
+  {
+    COB_InfoPacket_t info_packet;
+
+    if (!cob_subscriptions[i].active)
+    {
+      continue;
+    }
+
+    COB_NetXFillInfoPacket(&info_packet);
+    if (COB_NetXSendUdpPacket(&cob_ping_socket, (const uint8_t *)&info_packet,
+                              sizeof(info_packet), cob_subscriptions[i].ip_address,
+                              cob_subscriptions[i].port))
+    {
+      cob_info_tx_counter++;
+      COB_NX_InfoPacketsSent++;
+      COB_NX_InfoLastStatus = NX_SUCCESS;
+      COB_NetXExchangeActivityPulse();
+      sent_any = true;
+    }
+    else
+    {
+      COB_NX_InfoLastStatus = COB_NX_ExchangeLastStatus;
+      COB_NX_InfoPacketsDropped++;
+      COB_StatusLED_ErrorSet(true);
+    }
+  }
+
+  return sent_any;
 }
 
 static bool COB_NetXSendUdpPacket(NX_UDP_SOCKET *socket, const uint8_t *payload,
@@ -681,15 +934,15 @@ static bool COB_NetXSendUdpPacket(NX_UDP_SOCKET *socket, const uint8_t *payload,
   return true;
 }
 
-static void COB_NetXFillInfoPacket(COB_InfoPacket_t *packet)
+static void COB_NetXFillPingPacket(COB_PingPacket_t *packet)
 {
   ULONG ip_address = 0U;
   ULONG network_mask = 0U;
 
   (void)nx_ip_address_get(&cob_ip, &ip_address, &network_mask);
 
-  packet->Id = COB_INFO_SEND_ID;
-  packet->Index = cob_info_tx_index++;
+  packet->Id = COB_PING_SEND_ID;
+  packet->Index = cob_ping_tx_index++;
   packet->Length = (uint16_t)sizeof(*packet);
   packet->DeviceId[0] = HAL_GetUIDw0();
   packet->DeviceId[1] = HAL_GetUIDw1();
@@ -698,13 +951,49 @@ static void COB_NetXFillInfoPacket(COB_InfoPacket_t *packet)
   packet->CurrentIpAddress[1] = (uint8_t)((ip_address >> 16) & 0xFFU);
   packet->CurrentIpAddress[2] = (uint8_t)((ip_address >> 8) & 0xFFU);
   packet->CurrentIpAddress[3] = (uint8_t)(ip_address & 0xFFU);
-  packet->AdditionalSendPort = COB_NETX_ADDITIONAL_SEND_PORT;
   packet->CurrentReceivePort = COB_NETX_EXCHANGE_PORT;
+  packet->PingBroadcastPort = COB_NETX_PING_PORT;
   packet->McuTemperatureCentiC = COB_NetXReadMcuTemperatureCentiC();
   packet->CurrentStatus = 0U;
   packet->Version = COB_NETX_FIRMWARE_VERSION;
   packet->Config = COB_NETX_CONFIG_VERSION;
   (void)network_mask;
+}
+
+static void COB_NetXFillInfoPacket(COB_InfoPacket_t *packet)
+{
+  packet->Id = COB_INFO_SEND_ID;
+  packet->Index = cob_info_tx_index++;
+  packet->Length = (uint16_t)sizeof(*packet);
+  packet->DeviceId = COB_NetXGetDeviceId32();
+  packet->DeviceType = 1U;
+  packet->DeviceStatus = 101U;
+  packet->ErrorCode = 0U;
+  packet->SubscriptionCount = COB_NetXGetSubscriptionCount();
+  packet->TemperatureCentiC = COB_NetXReadMcuTemperatureCentiC();
+  packet->Reserved = 0U;
+  packet->SentInfoCounter = cob_info_tx_counter + 1U;
+}
+
+static uint32_t COB_NetXGetDeviceId32(void)
+{
+  uint32_t hash = 2166136261UL;
+  uint32_t uid[3];
+
+  uid[0] = HAL_GetUIDw0();
+  uid[1] = HAL_GetUIDw1();
+  uid[2] = HAL_GetUIDw2();
+
+  for (uint32_t word = 0U; word < 3U; word++)
+  {
+    for (uint32_t shift = 0U; shift < 32U; shift += 8U)
+    {
+      hash ^= (uid[word] >> shift) & 0xFFU;
+      hash *= 16777619UL;
+    }
+  }
+
+  return hash;
 }
 
 static int16_t COB_NetXReadMcuTemperatureCentiC(void)
@@ -719,8 +1008,12 @@ static void COB_NetXExchangeActivityPulse(void)
     return;
   }
 
-  cob_exchange_led_pulse_ticks = COB_NETX_ACTIVITY_PULSE_PERIOD;
-  COB_StatusLED_ExchangeSet(false);
+  if ((cob_exchange_led_cooldown_ticks == 0U) && (cob_exchange_led_off_ticks == 0U))
+  {
+    cob_exchange_led_off_ticks = COB_NETX_ACTIVITY_OFF_PERIOD;
+    cob_exchange_led_cooldown_ticks = COB_NETX_ACTIVITY_MIN_PERIOD;
+    COB_StatusLED_ExchangeSet(false);
+  }
 }
 
 static void COB_NetXUpdateExchangeLed(ULONG elapsed_ticks)
@@ -731,16 +1024,25 @@ static void COB_NetXUpdateExchangeLed(ULONG elapsed_ticks)
     return;
   }
 
-  if (cob_exchange_led_pulse_ticks > 0U)
+  if (cob_exchange_led_cooldown_ticks > elapsed_ticks)
   {
-    if (cob_exchange_led_pulse_ticks > elapsed_ticks)
+    cob_exchange_led_cooldown_ticks -= elapsed_ticks;
+  }
+  else
+  {
+    cob_exchange_led_cooldown_ticks = 0U;
+  }
+
+  if (cob_exchange_led_off_ticks > 0U)
+  {
+    if (cob_exchange_led_off_ticks > elapsed_ticks)
     {
-      cob_exchange_led_pulse_ticks -= elapsed_ticks;
+      cob_exchange_led_off_ticks -= elapsed_ticks;
       COB_StatusLED_ExchangeSet(false);
       return;
     }
 
-    cob_exchange_led_pulse_ticks = 0U;
+    cob_exchange_led_off_ticks = 0U;
   }
 
   COB_StatusLED_ExchangeSet(true);

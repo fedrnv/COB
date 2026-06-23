@@ -59,6 +59,10 @@ extern DMA_HandleTypeDef handle_GPDMA1_Channel0 ;
 volatile uint32_t COB_MainStage = 0U;
 volatile uint32_t COB_RIFStage = 0U;
 volatile uint32_t COB_ThreadXTickReady = 0U;
+volatile uint32_t COB_HalTickDwtReady = 0U;
+volatile uint32_t COB_HalTickMs = 0U;
+volatile uint32_t COB_HalTickLastCycles = 0U;
+volatile uint32_t COB_HalTickRemainderCycles = 0U;
 volatile uint32_t COB_FlashTestStage = 0U;
 volatile uint32_t COB_FlashTestPassed = 0U;
 volatile uint32_t COB_FlashTestValue = 0U;
@@ -169,11 +173,65 @@ static void MPU_Config(void);
 static void SystemIsolation_ETH_Config(void);
 static void SystemIsolation_Config(void);
 /* USER CODE BEGIN PFP */
+static void COB_HALTick_EnableCycleCounter(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint32_t HAL_GetTick(void)
+{
+  uint32_t cycles_per_ms;
+  uint32_t cycles;
+  uint32_t delta_cycles;
+  uint32_t total_cycles;
+
+  if (COB_ThreadXTickReady != 0U)
+  {
+    return (uint32_t)((tx_time_get() * 1000UL) / TX_TIMER_TICKS_PER_SECOND);
+  }
+
+  COB_HALTick_EnableCycleCounter();
+  if (COB_HalTickDwtReady == 0U)
+  {
+    return COB_HalTickMs;
+  }
+
+  cycles_per_ms = SystemCoreClock / 1000UL;
+  if (cycles_per_ms == 0U)
+  {
+    return COB_HalTickMs;
+  }
+
+  cycles = DWT->CYCCNT;
+  delta_cycles = cycles - COB_HalTickLastCycles;
+  COB_HalTickLastCycles = cycles;
+
+  total_cycles = COB_HalTickRemainderCycles + delta_cycles;
+  COB_HalTickMs += total_cycles / cycles_per_ms;
+  COB_HalTickRemainderCycles = total_cycles % cycles_per_ms;
+
+  return COB_HalTickMs;
+}
+
+static void COB_HALTick_EnableCycleCounter(void)
+{
+  if (COB_HalTickDwtReady != 0U)
+  {
+    return;
+  }
+
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0U;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+  if ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) != 0U)
+  {
+    COB_HalTickLastCycles = DWT->CYCCNT;
+    COB_HalTickDwtReady = 1U;
+  }
+}
+
 int __io_putchar(int ch)
 {
   uint8_t c = (uint8_t)ch;
@@ -204,6 +262,7 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
   HAL_Init();
+  HAL_SuspendTick();
   COB_MainStage = 10U;
 
   /* USER CODE BEGIN Init */
@@ -243,7 +302,6 @@ int main(void)
   MX_USART3_UART_Init();
   COB_MainStage = 100U;
   /* USER CODE BEGIN 2 */
-  COB_EthernetExchange_Init(NULL, NULL);
   COB_MainStage = 105U;
 
   /* USER CODE END 2 */
@@ -469,7 +527,7 @@ static void MPU_Config(void)
   HAL_MPU_Disable();
 
   attr_config.Number = MPU_ATTRIBUTES_NUMBER0;
-  attr_config.Attributes = INNER_OUTER(MPU_RW_ALLOCATE);
+  attr_config.Attributes = INNER_OUTER(MPU_NOT_CACHEABLE);
   HAL_MPU_ConfigMemoryAttributes(&attr_config);
 
   region_config.Enable = MPU_REGION_ENABLE;

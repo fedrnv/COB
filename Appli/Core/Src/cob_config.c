@@ -38,6 +38,7 @@ static bool COB_Config_GetFlashLayout(uint32_t *address, uint32_t *erase_size);
 static uint32_t COB_Config_SelectEraseSize(const EXTMEM_NOR_SFDP_FlashInfoTypeDef *info);
 static bool COB_Config_IsValid(const COB_Config_t *config);
 static uint32_t COB_Config_Crc32(const uint8_t *data, uint32_t length);
+static uint32_t COB_Config_HashUid(void);
 
 void COB_Config_Init(void)
 {
@@ -194,7 +195,7 @@ static bool COB_Config_LoadFromFlash(COB_Config_t *config)
 
 static void COB_Config_LoadDefaults(COB_Config_t *config)
 {
-  uint32_t uid = HAL_GetUIDw0();
+  uint32_t uid_hash = COB_Config_HashUid();
 
   memset(config, 0, sizeof(*config));
   config->addresses.ip_address[0] = 192U;
@@ -204,10 +205,10 @@ static void COB_Config_LoadDefaults(COB_Config_t *config)
 
   config->addresses.mac_address[0] = 0x02U;
   config->addresses.mac_address[1] = 0xFDU;
-  config->addresses.mac_address[2] = (uint8_t)((uid >> 24) & 0xFFU);
-  config->addresses.mac_address[3] = (uint8_t)((uid >> 16) & 0xFFU);
-  config->addresses.mac_address[4] = (uint8_t)((uid >> 8) & 0xFFU);
-  config->addresses.mac_address[5] = (uint8_t)(uid & 0xFFU);
+  config->addresses.mac_address[2] = (uint8_t)((uid_hash >> 24) & 0xFFU);
+  config->addresses.mac_address[3] = (uint8_t)((uid_hash >> 16) & 0xFFU);
+  config->addresses.mac_address[4] = (uint8_t)((uid_hash >> 8) & 0xFFU);
+  config->addresses.mac_address[5] = (uint8_t)(uid_hash & 0xFFU);
 }
 
 static bool COB_Config_GetFlashLayout(uint32_t *address, uint32_t *erase_size)
@@ -328,4 +329,25 @@ static uint32_t COB_Config_Crc32(const uint8_t *data, uint32_t length)
   }
 
   return ~crc;
+}
+
+static uint32_t COB_Config_HashUid(void)
+{
+  uint32_t hash = 2166136261UL;
+  uint32_t uid[3];
+
+  uid[0] = HAL_GetUIDw0();
+  uid[1] = HAL_GetUIDw1();
+  uid[2] = HAL_GetUIDw2();
+
+  for (uint32_t word = 0U; word < 3U; word++)
+  {
+    for (uint32_t shift = 0U; shift < 32U; shift += 8U)
+    {
+      hash ^= (uid[word] >> shift) & 0xFFU;
+      hash *= 16777619UL;
+    }
+  }
+
+  return hash;
 }

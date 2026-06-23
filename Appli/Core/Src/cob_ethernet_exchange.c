@@ -10,7 +10,7 @@ typedef struct {
   COB_ControlPacket_t control;
   COB_AddressPacket_t address;
   COB_OperationPacket_t operation;
-  COB_InfoPacket_t info;
+  COB_PingPacket_t ping;
   uint16_t tx_index;
   COB_EthernetSendFn send_fn;
   void *send_context;
@@ -102,11 +102,11 @@ bool COB_EthernetExchange_ProcessPacket(const uint8_t *payload, uint16_t length)
   }
 }
 
-bool COB_EthernetExchange_SendInfo(void)
+bool COB_EthernetExchange_SendPing(void)
 {
-  exchange.info.Id = COB_INFO_SEND_ID;
-  exchange.info.Length = sizeof(exchange.info);
-  return send_packet(&exchange.info, sizeof(exchange.info), COB_INFO_SEND_ID);
+  exchange.ping.Id = COB_PING_SEND_ID;
+  exchange.ping.Length = sizeof(exchange.ping);
+  return send_packet(&exchange.ping, sizeof(exchange.ping), COB_PING_SEND_ID);
 }
 
 const COB_CoefficientPacket_t *COB_EthernetExchange_GetCoefficientPacket(void)
@@ -124,9 +124,9 @@ const COB_AddressPacket_t *COB_EthernetExchange_GetAddressPacket(void)
   return &exchange.address;
 }
 
-const COB_InfoPacket_t *COB_EthernetExchange_GetInfoPacket(void)
+const COB_PingPacket_t *COB_EthernetExchange_GetPingPacket(void)
 {
-  return &exchange.info;
+  return &exchange.ping;
 }
 
 static uint16_t clamp_copy_len(uint16_t packet_len, uint16_t storage_len)
@@ -299,13 +299,13 @@ static void load_defaults(void)
   };
   exchange.address_valid = true;
 
-  exchange.info = (COB_InfoPacket_t) {
-    .Id = COB_INFO_SEND_ID,
-    .Length = (uint16_t)sizeof(exchange.info),
+  exchange.ping = (COB_PingPacket_t) {
+    .Id = COB_PING_SEND_ID,
+    .Length = (uint16_t)sizeof(exchange.ping),
     .DeviceId = {0U, 0U, 0U},
     .CurrentIpAddress = {0U, 0U, 0U, 0U},
-    .AdditionalSendPort = 50001U,
     .CurrentReceivePort = 1556U,
+    .PingBroadcastPort = 50101U,
     .McuTemperatureCentiC = 0,
     .CurrentStatus = 0U,
   };

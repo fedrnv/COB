@@ -128,12 +128,44 @@ typedef struct {
   uint16_t Length;
   uint32_t DeviceId[3];
   uint8_t CurrentIpAddress[4];
-  uint16_t AdditionalSendPort;
   uint16_t CurrentReceivePort;
+  uint16_t PingBroadcastPort;
   int16_t McuTemperatureCentiC;
   uint16_t CurrentStatus;
   uint32_t Version;
   uint32_t Config;
+} COB_PACKED COB_PingPacket_t;
+
+typedef struct {
+  uint16_t Id;
+  uint16_t Index;
+  uint16_t Length;
+  uint8_t IPAddress[4];
+  uint16_t Port;
+} COB_PACKED COB_SubscriptionPacket_t;
+
+typedef struct {
+  uint16_t Id;
+  uint16_t Index;
+  uint16_t Length;
+  uint8_t Status;
+  uint8_t ErrorCode;
+  uint8_t SubscriptionCount;
+  uint8_t Reserved;
+} COB_PACKED COB_SubscriptionAckPacket_t;
+
+typedef struct {
+  uint16_t Id;
+  uint16_t Index;
+  uint16_t Length;
+  uint32_t DeviceId;
+  uint8_t DeviceType;
+  uint8_t DeviceStatus;
+  uint8_t ErrorCode;
+  uint8_t SubscriptionCount;
+  int16_t TemperatureCentiC;
+  uint16_t Reserved;
+  uint32_t SentInfoCounter;
 } COB_PACKED COB_InfoPacket_t;
 
 #endif /* COB_PROTOCOL_PACKETS_H */
